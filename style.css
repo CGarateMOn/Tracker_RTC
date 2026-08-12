@@ -1,0 +1,102 @@
+:root{
+  --paper:#EDF0F6; --card:#FFF; --ink:#151A2B; --indigo:#26346B;
+  --amber:#D8871B; --muted:#6B7488; --line:#D7DDE9;
+  --open:#1F7A54; --soon:#7A5AC4; --shut:#8A94A8; --r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--paper);color:var(--ink);font:400 16px/1.45 "Inter Tight",system-ui,sans-serif;padding-bottom:80px;overflow-wrap:anywhere}
+.wrap{max-width:780px;margin:0 auto;padding:0 16px}
+button{font-family:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+
+/* ---------- puerta de entrada ---------- */
+#gate{position:fixed;inset:0;z-index:100;background:var(--indigo);color:#fff;display:none;flex-direction:column;justify-content:center;padding:24px;overflow:auto}
+#gate.on{display:flex}
+#gate .inner{max-width:520px;margin:0 auto;width:100%}
+#gate h1{font:800 34px/1.1 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;margin-bottom:8px}
+#gate p{opacity:.78;margin-bottom:26px;font-size:15px}
+.gopt{display:block;width:100%;text-align:left;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:var(--r);padding:17px 20px;margin-bottom:10px;font:600 18px "Bricolage Grotesque",sans-serif}
+.gopt small{display:block;font:400 13px "Inter Tight",sans-serif;opacity:.65;margin-top:3px}
+.gopt:hover{background:rgba(255,255,255,.14)}
+
+/* ---------- cabecera ---------- */
+header{background:var(--indigo);color:#fff;padding:18px 0 16px}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand b{font:800 24px/1 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em}
+.brand span{font:500 11px/1 "JetBrains Mono",monospace;letter-spacing:.14em;text-transform:uppercase;opacity:.72}
+.modo{margin-top:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:999px;padding:7px 14px;font:500 13px "Inter Tight",sans-serif}
+
+/* ---------- barra de filtros ---------- */
+.bar{position:sticky;top:0;z-index:30;background:var(--paper);border-bottom:1px solid var(--line);padding:12px 0 9px}
+.search{width:100%;padding:12px 14px;font:400 16px "Inter Tight",sans-serif;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
+.chips{display:flex;gap:8px;overflow-x:auto;margin-top:9px;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;min-height:38px;padding:8px 13px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--muted);font:500 14px "Inter Tight",sans-serif;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--indigo);border-color:var(--indigo);color:#fff}
+.chip.vacio{opacity:.4}
+.chip .n{font:700 11px "JetBrains Mono",monospace;opacity:.6;margin-left:6px}
+.sep{flex:0 0 auto;align-self:center;width:1px;height:22px;background:var(--line);margin:0 2px}
+.glabel{flex:0 0 auto;align-self:center;font:500 11px "JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+.filtros{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.filtros>*{min-width:0}
+.filtros>details.drop>summary,.filtros>button{width:100%;justify-content:space-between}
+.filtros>details.drop:nth-child(even)>.panel{left:auto;right:0}
+.filtros>.ancho{grid-column:1/-1}
+summary .lb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+summary .car{flex:0 0 auto;opacity:.6;font-size:11px;margin-left:8px}
+details[open]>summary .car{transform:rotate(180deg)}
+details.drop{position:relative}
+details.drop>summary{list-style:none;min-height:42px;display:flex;align-items:center;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--muted);font:500 14px "Inter Tight",sans-serif;white-space:nowrap}
+details.drop>summary::-webkit-details-marker{display:none}
+details.drop[data-on="1"]>summary{background:var(--indigo);border-color:var(--indigo);color:#fff}
+.panel{position:absolute;top:calc(100% + 6px);left:0;z-index:40;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:8px;min-width:235px;max-height:56vh;overflow:auto;box-shadow:0 10px 28px rgba(21,26,43,.16)}
+.panel.wide{min-width:285px}
+.grupo{font:500 11px "JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:10px 8px 4px}
+label.opt{display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:8px;font-size:15px;cursor:pointer}
+label.opt:hover{background:var(--paper)}
+label.opt input{width:18px;height:18px;accent-color:var(--indigo);flex:0 0 auto}
+label.opt .c{margin-left:auto;font:700 11px "JetBrains Mono",monospace;color:var(--muted)}
+label.opt.vacio{opacity:.42}
+.panel .buscar{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-size:15px;margin-bottom:4px}
+
+.estadoline{margin-top:10px;font-size:13px;color:var(--muted)}
+.estadoline button{background:none;border:none;color:var(--indigo);font:600 13px "Inter Tight",sans-serif;text-decoration:underline;padding:4px 0}
+.estadoline .cajas{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
+.estadoline .cajas label.opt{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:14px}
+
+.meta-bar{display:flex;align-items:center;gap:12px;padding:14px 0 10px}
+.count{font:500 12px "JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.reset{margin-left:auto;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font:500 13px "Inter Tight",sans-serif;color:var(--muted);background:var(--card)}
+
+/* ---------- tarjetas ---------- */
+ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+.card{position:relative;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--shut);border-radius:var(--r);padding:14px 16px}
+.card.is-open{border-left-color:var(--open)}
+.card.is-soon{border-left-color:var(--soon)}
+.card.is-urgent{border-left-color:var(--amber)}
+.card:focus-within{outline:2px solid var(--indigo);outline-offset:2px}
+.top{display:flex;align-items:flex-start;gap:11px}
+.logo{flex:0 0 auto;width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font:700 13px "JetBrains Mono",monospace;letter-spacing:-.02em;margin-top:2px}
+.is-shut .logo{filter:saturate(.25);opacity:.7}
+.empresa{font:600 19px/1.2 "Bricolage Grotesque",sans-serif;letter-spacing:-.01em}
+.empresa a{color:inherit;text-decoration:none}
+.empresa a::after{content:"";position:absolute;inset:0}
+.fav{position:relative;z-index:2;margin-left:auto;background:none;border:none;font-size:20px;line-height:1;color:#C3CAD8;padding:2px 4px}
+.fav[aria-pressed="true"]{color:var(--amber)}
+.desc{margin-top:3px;font-size:15px;color:#39415A}
+.tags{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:12px}
+.pill{font:500 12px "JetBrains Mono",monospace;letter-spacing:.03em;text-transform:uppercase;padding:4px 9px;border-radius:6px;background:#EDF0F6;color:var(--muted)}
+.pill.est{color:#fff;background:var(--shut)}
+.is-open .pill.est,.is-urgent .pill.est{background:var(--open)}
+.is-soon .pill.est{background:var(--soon)}
+.dl{margin-left:auto;font:700 13px "JetBrains Mono",monospace;color:var(--muted);text-align:right}
+.dl.urge{color:var(--amber)}
+
+.empty{padding:52px 12px;text-align:center;color:var(--muted)}
+.empty b{display:block;font:600 19px "Bricolage Grotesque",sans-serif;color:var(--ink);margin-bottom:8px}
+.empty button{margin-top:16px;background:var(--indigo);color:#fff;border:none;border-radius:999px;padding:11px 20px;font:600 15px "Inter Tight",sans-serif}
+.hint{margin-bottom:12px;background:#FDF3E2;border:1px solid #E9CE9A;border-radius:var(--r);padding:12px 14px;font-size:14px;color:#6B4E17}
+.hint button{background:none;border:none;color:#6B4E17;font-weight:600;text-decoration:underline;font-size:14px}
+.foot{margin-top:26px;font:500 11px "JetBrains Mono",monospace;color:var(--muted);text-align:center;line-height:1.7}
