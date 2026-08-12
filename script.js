@@ -2,7 +2,7 @@
    Pega aquí la URL /exec del Apps Script. Con el valor de fábrica
    la página funciona con datos de ejemplo.
 ================================================================= */
-const API_URL = 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwCM_bRu-hi0G5x822DMGd1HQsE2HbcogclQN5Z5WdsgVekWF1HWMa7I4M9PjkhC7_e/exec';
 
 const K_DATOS='rtc-datos-v2', K_FILT='rtc-filtros-v2', K_FAV='rtc-favoritas-v1', K_GATE='rtc-gate-v1';
 
