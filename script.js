@@ -10,19 +10,19 @@ const PRACTICAS=['Estrategia','Tecnología y AI','Financiero y M&A','Auditoría'
 const MOD_P=['Summer','Off-cycle'];
 const MOD_F=['Graduate programme','Entrada directa'];
 const PLAZOS=['Fecha fija','Rolling','Sin publicar'];
-const CURSOS=['2º','3º','4º','Máster'];
+const CURSOS=['Todos','Penúltimo año','Solo máster'];
 const ESTADOS=['Abierta','Próximamente','Cerrada'];
 
 const DEMO={actualizado:new Date().toISOString(),ofertas:[
  {id:'RTC-0001',empresa:'McKinsey & Company',descripcion:'Business Analyst',tipo:'Tiempo completo',practica:'Estrategia',modalidad:'Graduate programme',estado:'Abierta',ciudad:'Madrid',curso:'',tipoPlazo:'Rolling',deadline:'',link:'#',alta:'2026-08-01'},
- {id:'RTC-0002',empresa:'QuantumBlack',descripcion:'Data Scientist Intern',tipo:'Prácticas',practica:'Tecnología y AI',modalidad:'Summer',estado:'Abierta',ciudad:'Madrid',curso:'3º',tipoPlazo:'Fecha fija',deadline:'2026-08-18',link:'#',alta:'2026-08-05'},
- {id:'RTC-0003',empresa:'Bain & Company',descripcion:'Associate Consultant Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'3º',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-07-28'},
+ {id:'RTC-0002',empresa:'QuantumBlack',descripcion:'Data Scientist Intern',tipo:'Prácticas',practica:'Tecnología y AI',modalidad:'Summer',estado:'Abierta',ciudad:'Madrid',curso:'Penúltimo año',tipoPlazo:'Fecha fija',deadline:'2026-08-18',link:'#',alta:'2026-08-05'},
+ {id:'RTC-0003',empresa:'Bain & Company',descripcion:'Associate Consultant Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'Penúltimo año',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-07-28'},
  {id:'RTC-0004',empresa:'Deloitte',descripcion:'Monitor Deloitte — Analyst',tipo:'Tiempo completo',practica:'Estrategia',modalidad:'Entrada directa',estado:'Abierta',ciudad:'Barcelona',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-09-30',link:'#',alta:'2026-08-02'},
- {id:'RTC-0005',empresa:'Deloitte',descripcion:'Financial Advisory — M&A Intern',tipo:'Prácticas',practica:'Financiero y M&A',modalidad:'Off-cycle',estado:'Abierta',ciudad:'Madrid',curso:'4º',tipoPlazo:'Rolling',deadline:'',link:'#',alta:'2026-08-09'},
+ {id:'RTC-0005',empresa:'Deloitte',descripcion:'Financial Advisory — M&A Intern',tipo:'Prácticas',practica:'Financiero y M&A',modalidad:'Off-cycle',estado:'Abierta',ciudad:'Madrid',curso:'Todos',tipoPlazo:'Rolling',deadline:'',link:'#',alta:'2026-08-09'},
  {id:'RTC-0006',empresa:'KPMG',descripcion:'Audit Graduate Programme',tipo:'Tiempo completo',practica:'Auditoría',modalidad:'Graduate programme',estado:'Cerrada',ciudad:'Madrid',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-06-15',link:'#',alta:'2026-05-01'},
- {id:'RTC-0007',empresa:'Accenture',descripcion:'Technology Consulting Intern',tipo:'Prácticas',practica:'Tecnología y AI',modalidad:'Summer',estado:'Abierta',ciudad:'Bilbao',curso:'2º',tipoPlazo:'Fecha fija',deadline:'2026-08-14',link:'#',alta:'2026-08-10'},
- {id:'RTC-0008',empresa:'EY',descripcion:'EY-Parthenon Summer Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'4º',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'},
- {id:'RTC-0009',empresa:'PwC',descripcion:'Strategy& Consulting Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Abierta',ciudad:'Valencia',curso:'3º',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'}
+ {id:'RTC-0007',empresa:'Accenture',descripcion:'Technology Consulting Intern',tipo:'Prácticas',practica:'Tecnología y AI',modalidad:'Summer',estado:'Abierta',ciudad:'Bilbao',curso:'Todos',tipoPlazo:'Fecha fija',deadline:'2026-08-14',link:'#',alta:'2026-08-10'},
+ {id:'RTC-0008',empresa:'EY',descripcion:'EY-Parthenon Summer Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'Solo máster',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'},
+ {id:'RTC-0009',empresa:'PwC',descripcion:'Strategy& Consulting Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Abierta',ciudad:'Valencia',curso:'Penúltimo año',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'}
 ]};
 
 const HOY=new Date(); HOY.setHours(0,0,0,0);
