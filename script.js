@@ -167,7 +167,7 @@ function ops(campo,prop,valores,set,buscador){
 }
 
 function drop(clave,etiqueta,n,interior,ancho){
-  return `<details class="drop" data-k="${clave}" data-on="${n?1:0}">
+  return `<details class="drop" name="filtro-abierto" data-k="${clave}" data-on="${n?1:0}">
     <summary><span class="lb">${etiqueta}${n?' ('+n+')':''}</span><span class="car">▼</span></summary>
     <div class="panel${ancho?' wide':''}">${interior}</div></details>`;
 }
