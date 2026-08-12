@@ -341,7 +341,7 @@ function cerrarGate(){$('#gate').classList.remove('on');document.body.classList.
 document.addEventListener('click',e=>{
   const g=e.target.closest('.gopt');
   if(g){S.gate=g.dataset.g;try{localStorage.setItem(K_GATE,S.gate)}catch(err){}
-    S.modalidad.clear();cerrarGate();render();return;}
+    S.modalidad.clear();cerrarGate();render();cargarDatos();return;}
   if(e.target.closest('#modo')){abrirGate();return;}
   const chip=e.target.closest('.chip[data-campo]');
   if(chip){const s=S[chip.dataset.campo],v=chip.dataset.v;s.has(v)?s.delete(v):s.add(v);render();return;}
@@ -390,13 +390,19 @@ function aplicar(data,origen){
   render();
 }
 
-async function cargar(){
-  cargarPrefs();
-  if(!S.gate){S.gate='ambas';abrirGate();}
-  try{const c=localStorage.getItem(K_DATOS);if(c)aplicar(JSON.parse(c),'copia guardada');}catch(e){}
-
-  if(API_URL.indexOf('PEGA_AQUI')===0){aplicar(DEMO,'datos de ejemplo');return;}
+/* cargarDatos() pide la hoja en directo. Se llama al arrancar la
+   página Y otra vez al elegir una opción en la puerta de entrada:
+   si esa primera petición aún no había terminado (o falló) cuando
+   el usuario contestó, aquí se reintenta para que la lista deje de
+   mostrar "no hay ninguna oferta" por una carrera con la red y no
+   por falta real de resultados. El flag evita lanzar dos peticiones
+   a la vez si ya hay una en curso. */
+let cargando=false;
+async function cargarDatos(){
+  if(cargando)return;
+  cargando=true;
   try{
+    if(API_URL.indexOf('PEGA_AQUI')===0){aplicar(DEMO,'datos de ejemplo');return;}
     const r=await fetch(API_URL);
     if(!r.ok)throw new Error('HTTP '+r.status);
     const data=await r.json();
@@ -407,6 +413,15 @@ async function cargar(){
       $('#count').textContent='';
       $('#list').innerHTML=`<li class="empty"><b>No se pudieron cargar las ofertas</b>Revisa la conexión y vuelve a intentarlo.</li>`;
     }
+  }finally{
+    cargando=false;
   }
+}
+
+function cargar(){
+  cargarPrefs();
+  if(!S.gate){S.gate='ambas';abrirGate();}
+  try{const c=localStorage.getItem(K_DATOS);if(c)aplicar(JSON.parse(c),'copia guardada');}catch(e){}
+  cargarDatos();
 }
 cargar();
