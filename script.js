@@ -17,12 +17,12 @@ const DEMO={actualizado:new Date().toISOString(),ofertas:[
  {id:'RTC-0001',empresa:'McKinsey & Company',descripcion:'Business Analyst',tipo:'Tiempo completo',practica:'Estrategia',modalidad:'Graduate programme',estado:'Abierta',ciudad:'Madrid',curso:'',tipoPlazo:'Rolling',deadline:'',link:'#',alta:'2026-08-01'},
  {id:'RTC-0002',empresa:'QuantumBlack',descripcion:'Data Scientist Intern',tipo:'Prácticas',practica:'Tecnología y AI',modalidad:'Summer',estado:'Abierta',ciudad:'Madrid',curso:'Penúltimo año',tipoPlazo:'Fecha fija',deadline:'2026-08-18',link:'#',alta:'2026-08-05'},
  {id:'RTC-0003',empresa:'Bain & Company',descripcion:'Associate Consultant Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'Penúltimo año',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-07-28'},
- {id:'RTC-0004',empresa:'Deloitte',descripcion:'Monitor Deloitte — Analyst',tipo:'Tiempo completo',practica:'Estrategia',modalidad:'Entrada directa',estado:'Abierta',ciudad:'Barcelona',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-09-30',link:'#',alta:'2026-08-02'},
+ {id:'RTC-0004',empresa:'Monitor Deloitte',descripcion:'Strategy Analyst',tipo:'Tiempo completo',practica:'Estrategia',modalidad:'Entrada directa',estado:'Abierta',ciudad:'Barcelona',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-09-30',link:'#',alta:'2026-08-02'},
  {id:'RTC-0005',empresa:'Deloitte',descripcion:'Financial Advisory — M&A Intern',tipo:'Prácticas',practica:'Financiero y M&A',modalidad:'Off-cycle',estado:'Abierta',ciudad:'Madrid',curso:'Todos',tipoPlazo:'Rolling',deadline:'',link:'#',alta:'2026-08-09'},
  {id:'RTC-0006',empresa:'KPMG',descripcion:'Audit Graduate Programme',tipo:'Tiempo completo',practica:'Auditoría',modalidad:'Graduate programme',estado:'Cerrada',ciudad:'Madrid',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-06-15',link:'#',alta:'2026-05-01'},
  {id:'RTC-0007',empresa:'Accenture',descripcion:'Technology Consulting Intern',tipo:'Prácticas',practica:'Tecnología y AI',modalidad:'Summer',estado:'Abierta',ciudad:'Bilbao',curso:'Todos',tipoPlazo:'Fecha fija',deadline:'2026-08-14',link:'#',alta:'2026-08-10'},
- {id:'RTC-0008',empresa:'EY',descripcion:'EY-Parthenon Summer Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'Solo máster',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'},
- {id:'RTC-0009',empresa:'PwC',descripcion:'Strategy& Consulting Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Abierta',ciudad:'Valencia',curso:'Penúltimo año',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'}
+ {id:'RTC-0008',empresa:'EY-Parthenon',descripcion:'Summer Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'Solo máster',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'},
+ {id:'RTC-0009',empresa:'Strategy&',descripcion:'Consulting Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Abierta',ciudad:'Valencia',curso:'Penúltimo año',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'}
 ]};
 
 const HOY=new Date(); HOY.setHours(0,0,0,0);
@@ -53,44 +53,82 @@ function norm(o){
 
 /* =================================================================
    COLORES DE MARCA
-   Se busca por coincidencia dentro del nombre, así que "Deloitte",
-   "Monitor Deloitte" y "Deloitte Financial Advisory" caen en la misma
-   entrada. El orden importa: lo más específico, arriba.
+   Una entrada por MATRIZ. Todas sus ramas comparten color, aunque en
+   el tablón sigan apareciendo como empresas distintas: QuantumBlack
+   con el azul de McKinsey, BCG X y BCG Gamma con el verde de BCG,
+   Monitor Deloitte con el verde de Deloitte, EY-Parthenon con el
+   amarillo de EY, Strategy& con el naranja de PwC…
+   Basta con listar la matriz: cualquier nombre que la contenga
+   ("Bain Vector", "Deloitte Digital") hereda el color. Solo necesitan
+   clave propia las ramas que NO llevan dentro el nombre de la matriz
+   (QuantumBlack, Strategy&, Sogeti, everis…).
    Las marcas no listadas reciben un color estable derivado del nombre,
    así que añadir empresas a la hoja nunca rompe nada.
 ================================================================= */
 const MARCAS = [
-  ['quantumblack',   '#1A1A1A'],
-  ['quantum black',  '#1A1A1A'],
-  ['mckinsey',       '#051C2C'],
-  ['bcg',            '#177B57'],
-  ['boston consulting','#177B57'],
-  ['bain',           '#C8102E'],
-  ['kearney',        '#7A2E3B'],
-  ['oliver wyman',   '#0083C1'],
-  ['roland berger',  '#009B77'],
-  ['strategy&',      '#D04A02'],
-  ['monitor',        '#86BC25'],
-  ['deloitte',       '#86BC25'],
-  ['parthenon',      '#2E2E38'],
-  ['ey',             '#2E2E38'],
-  ['kpmg',           '#00338D'],
-  ['pwc',            '#D04A02'],
-  ['accenture',      '#A100FF'],
-  ['capgemini',      '#0070AD'],
-  ['ntt',            '#0075C2'],
-  ['ibm',            '#0F62FE'],
-  ['minsait',        '#6E2585'],
-  ['indra',          '#6E2585'],
-  ['alvarez',        '#00263E'],
-  ['alixpartners',   '#E4002B']
+  /* --- estrategia --- */
+  {matriz:'McKinsey & Company', color:'#2251FF',
+   ramas:['mckinsey','quantumblack','quantum black','mckinsey digital','orphoz']},
+
+  {matriz:'Boston Consulting Group', color:'#177B57',
+   ramas:['bcg','boston consulting','bcg x','bcg gamma','bcg platinion','platinion',
+          'bcg digital ventures','inverto']},
+
+  {matriz:'Bain & Company', color:'#CC0000',
+   ramas:['bain','bain vector','vector','bain digital']},
+
+  {matriz:'Kearney',       color:'#7A2E3B', ramas:['kearney','a t kearney']},
+  {matriz:'Oliver Wyman',  color:'#0083C1', ramas:['oliver wyman']},
+  {matriz:'Roland Berger', color:'#009B77', ramas:['roland berger']},
+  {matriz:'L.E.K.',        color:'#00539B', ramas:['l e k','lek']},
+
+  /* --- big four --- */
+  {matriz:'Deloitte', color:'#86BC25',
+   ramas:['deloitte','monitor deloitte','monitor','deloitte digital']},
+
+  {matriz:'EY', color:'#FFE600',
+   ramas:['ey','ey parthenon','parthenon','ernst & young']},
+
+  {matriz:'PwC', color:'#D04A02',
+   ramas:['pwc','strategy&','strategy and','pricewaterhousecoopers']},
+
+  {matriz:'KPMG', color:'#00338D', ramas:['kpmg']},
+
+  /* --- tecnología --- */
+  {matriz:'Accenture', color:'#A100FF',
+   ramas:['accenture','accenture song','accenture strategy','avanade']},
+
+  {matriz:'Capgemini', color:'#0070AD',
+   ramas:['capgemini','capgemini invent','sogeti','altran','frog']},
+
+  {matriz:'IBM',      color:'#0F62FE', ramas:['ibm','ibm ix','red hat']},
+  {matriz:'NTT DATA', color:'#0075C2', ramas:['ntt','ntt data','everis']},
+  {matriz:'Indra',    color:'#6E2585', ramas:['indra','minsait']},
+
+  /* --- reestructuración y otras --- */
+  {matriz:'Alvarez & Marsal', color:'#005587', ramas:['alvarez','alvarez & marsal']},
+  {matriz:'AlixPartners',     color:'#E4002B', ramas:['alixpartners','alix']},
+  {matriz:'Grant Thornton',   color:'#4B286D', ramas:['grant thornton']},
+  {matriz:'BDO',              color:'#ED1A3B', ramas:['bdo']},
+  {matriz:'Forvis Mazars',    color:'#0033A1', ramas:['mazars','forvis']},
+  {matriz:'RSM',              color:'#3F9C35', ramas:['rsm']}
 ];
 
 const sinAcentos=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 
+/* "EY-Parthenon" → " ey parthenon " · "Strategy&" → " strategy & "
+   Los espacios de los extremos permiten comparar por palabra entera:
+   así "ey" reconoce a EY pero no a Kearn-ey ni a McKins-ey. */
+const enPalabras=s=>' '+sinAcentos(s).replace(/&/g,' & ').replace(/[^a-z0-9&]+/g,' ').trim()+' ';
+
+/* rama → color, de la clave más específica a la más genérica */
+const CLAVES=MARCAS
+  .flatMap(m=>m.ramas.map(r=>[enPalabras(r),m.color]))
+  .sort((a,b)=>b[0].length-a[0].length);
+
 function colorMarca(nombre){
-  const n=sinAcentos(nombre);
-  for(const [clave,hex] of MARCAS) if(n.includes(clave)) return hex;
+  const n=enPalabras(nombre);
+  for(const [clave,hex] of CLAVES) if(n.includes(clave)) return hex;
   /* reserva: tono estable a partir del nombre, dentro de la paleta */
   let h=0; for(let i=0;i<n.length;i++) h=(h*31+n.charCodeAt(i))%360;
   return `hsl(${h} 42% 38%)`;
