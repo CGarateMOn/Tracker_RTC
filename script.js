@@ -271,6 +271,13 @@ function pintarControles(estadoAbierto){
 
 /* ---------- lista ---------- */
 function pintarLista(){
+  if(!TODAS.length&&cargando){
+    $('#count').textContent='Cargando…';
+    $('#hint').innerHTML='';
+    $('#list').innerHTML=`<li class="empty"><b>Cargando ofertas…</b>Esto puede tardar unos segundos.</li>`;
+    return;
+  }
+
   const items=ordenar(resultados());
   $('#count').textContent=items.length===1?'1 oferta':items.length+' ofertas';
 
@@ -341,7 +348,7 @@ function cerrarGate(){$('#gate').classList.remove('on');document.body.classList.
 document.addEventListener('click',e=>{
   const g=e.target.closest('.gopt');
   if(g){S.gate=g.dataset.g;try{localStorage.setItem(K_GATE,S.gate)}catch(err){}
-    S.modalidad.clear();cerrarGate();render();cargarDatos();return;}
+    S.modalidad.clear();cerrarGate();cargarDatos();render();return;}
   if(e.target.closest('#modo')){abrirGate();return;}
   const chip=e.target.closest('.chip[data-campo]');
   if(chip){const s=S[chip.dataset.campo],v=chip.dataset.v;s.has(v)?s.delete(v):s.add(v);render();return;}
