@@ -4,7 +4,7 @@
 ================================================================= */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwCM_bRu-hi0G5x822DMGd1HQsE2HbcogclQN5Z5WdsgVekWF1HWMa7I4M9PjkhC7_e/exec';
 
-const K_DATOS='rtc-datos-v2', K_FILT='rtc-filtros-v2', K_FAV='rtc-favoritas-v1', K_GATE='rtc-gate-v1';
+const K_DATOS='rtc-datos-v2', K_FILT='rtc-filtros-v2', K_FAV='rtc-favoritas-v2', K_GATE='rtc-gate-v1', K_SEG='rtc-seguimiento-v1';
 
 const PRACTICAS=['Estrategia','Tecnología y AI','Financiero y M&A','Auditoría'];
 const MOD_P=['Summer','Off-cycle'];
@@ -30,9 +30,15 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 let TODAS=[];
+/* guardadas: claves de OFERTA (claveOferta), no de empresa — guardar
+   una oferta de McKinsey no marca todas las de McKinsey. */
 let FAV=new Set();
+/* estado de candidatura por OFERTA:
+   clave de oferta → 'aplicada'|'entrevista'|'oferta'|'rechazada'.
+   La ausencia de clave es "sin seguimiento" y no se persiste. */
+let SEG={};
 const S={gate:null,practica:new Set(),modalidad:new Set(),ciudad:new Set(),empresa:new Set(),
-         plazo:new Set(),curso:new Set(),estado:new Set(['Abierta','Próximamente']),
+         plazo:new Set(),curso:new Set(),estado:new Set(['Abierta','Próximamente']),seg:new Set(),
          soloFav:false,orden:'plazo',q:''};
 
 /* ---------- normalización ---------- */
@@ -134,6 +140,16 @@ function colorMarca(nombre){
   return `hsl(${h} 42% 38%)`;
 }
 
+/* clave estable por oferta para el seguimiento (SEG). Usa el ID de la
+   hoja si existe; si no, una combinación de campos que rara vez
+   cambia. Si esos campos cambian más adelante (o el ID llega tarde),
+   el seguimiento de esa oferta concreta se pierde — es una limitación
+   aceptada de no tener backend propio. */
+function claveOferta(o){
+  if(o.id) return 'id:'+o.id;
+  return ['f',sinAcentos(o.empresa),sinAcentos(o.descripcion),sinAcentos(o.ciudad),o.alta].join('|');
+}
+
 /* ---------- plazo y color ----------
    nivel, por prioridad:
    preview  → estado === 'Próximamente' (prioridad sobre el resto)
@@ -176,7 +192,8 @@ function pasa(o,salta){
   if(salta!=='empresa'&&!enSet(S.empresa,o.empresa))return false;
   if(salta!=='plazo'&&!enSet(S.plazo,o.tipoPlazo))return false;
   if(salta!=='curso'&&!enSet(S.curso,o.curso))return false;
-  if(S.soloFav&&!FAV.has(o.empresa))return false;
+  if(salta!=='seg'&&S.seg.size&&!S.seg.has(SEG[claveOferta(o)]||''))return false;
+  if(S.soloFav&&!FAV.has(claveOferta(o)))return false;
   if(S.q&&!(o.empresa+' '+o.descripcion+' '+o.ciudad).toLowerCase().includes(S.q))return false;
   return true;
 }
@@ -202,6 +219,14 @@ function ops(campo,prop,valores,set,buscador){
     return `<label class="opt ${n?'':'vacio'}"><input type="checkbox" data-campo="${campo}" data-v="${esc(v)}" ${set.has(v)?'checked':''}><span>${esc(v)}</span><span class="c">${n}</span></label>`;
   }).join('');
   return (buscador?'<input class="buscar" type="search" placeholder="Buscar…" aria-label="Filtrar la lista">':'')+l;
+}
+
+const SEG_ETIQ={aplicada:'Aplicada',entrevista:'Entrevista',oferta:'Oferta',rechazada:'Rechazada'};
+function opsSeg(){
+  return Object.keys(SEG_ETIQ).map(v=>{
+    const n=TODAS.filter(o=>pasa(o,'seg')&&(SEG[claveOferta(o)]||'')===v).length;
+    return `<label class="opt ${n?'':'vacio'}"><input type="checkbox" data-campo="seg" data-v="${v}" ${S.seg.has(v)?'checked':''}><span>${SEG_ETIQ[v]}</span><span class="c">${n}</span></label>`;
+  }).join('');
 }
 
 function drop(clave,etiqueta,n,interior,ancho){
@@ -231,10 +256,12 @@ function pintarFiltros(){
   }
   $('#row1').innerHTML=h1;
 
-  /* --- fila 2: ciudad y avanzados --- */
+  /* --- fila 2: ciudad, tu candidatura y avanzados --- */
   let h2='';
   if(ciudades.length>1)
     h2+=drop('ciudad','Ciudad',S.ciudad.size,ops('ciudad','ciudad',ciudades,S.ciudad,ciudades.length>8));
+
+  h2+=drop('seg','Tu candidatura',S.seg.size,opsSeg());
 
   h2+=drop('mas','Más filtros',nAv,
     `<div class="grupo">Empresa</div>${ops('empresa','empresa',empresas,S.empresa,true)}
@@ -245,7 +272,7 @@ function pintarFiltros(){
        .map(([v,t])=>`<label class="opt"><input type="radio" name="orden" data-orden="${v}" ${S.orden===v?'checked':''}><span>${t}</span></label>`).join('')}`,
     true);
 
-  if(FAV.size)h2+=`<button class="chip ancho" aria-pressed="${S.soloFav}" id="favbtn">★ Mis empresas<span class="n">${FAV.size}</span></button>`;
+  if(FAV.size)h2+=`<button class="chip ancho" aria-pressed="${S.soloFav}" id="favbtn">★ Guardadas<span class="n">${FAV.size}</span></button>`;
   $('#row2').innerHTML=h2;
 }
 
@@ -258,7 +285,7 @@ function pintarEstado(abierto){
 
 function hayFiltros(){
   const estadoPorDefecto=S.estado.size===2&&S.estado.has('Abierta')&&S.estado.has('Próximamente');
-  return S.practica.size+S.modalidad.size+S.ciudad.size+S.empresa.size+S.plazo.size+S.curso.size
+  return S.practica.size+S.modalidad.size+S.ciudad.size+S.empresa.size+S.plazo.size+S.curso.size+S.seg.size
     +(S.q?1:0)+(S.soloFav?1:0)+(estadoPorDefecto?0:1) > 0;
 }
 
@@ -294,7 +321,8 @@ function pintarLista(){
   }
 
   $('#list').innerHTML=items.map(o=>{
-    const p=plazo(o),fav=FAV.has(o.empresa);
+    const clave=claveOferta(o),seg=SEG[clave]||'',fav=FAV.has(clave);
+    const p=plazo(o);
     const col=colorMarca(o.empresa);
     const meta=[o.practica,o.modalidad,o.ciudad].filter(Boolean).join(' · ');
     const href=(o.link&&o.link!=='#')?`href="${esc(o.link)}" target="_blank" rel="noopener"`:'';
@@ -304,11 +332,17 @@ function pintarLista(){
           <div class="empresa"><a ${href}>${esc(o.empresa)}</a></div>
           <p class="desc">${esc(o.descripcion)}</p>
         </div>
-        <button class="fav" aria-pressed="${fav}" aria-label="Seguir ${esc(o.empresa)}" data-emp="${esc(o.empresa)}">${fav?'★':'☆'}</button>
+        <button class="fav" aria-pressed="${fav}" aria-label="Guardar oferta: ${esc(o.descripcion)} en ${esc(o.empresa)}" data-key="${esc(clave)}">${fav?'★':'☆'}</button>
       </div>
       <div class="tags">
         ${meta?`<span class="meta">${esc(meta)}</span>`:''}
         <span class="plazo n-${p.nivel}">${esc(p.txt)}</span>
+      </div>
+      <div class="seg">
+        <select class="seg-select${seg?' v-'+seg:''}" data-seg="${esc(clave)}" aria-label="Tu candidatura en ${esc(o.empresa)}">
+          <option value=""${seg?'':' selected'}>Sin seguimiento</option>
+          ${Object.keys(SEG_ETIQ).map(v=>`<option value="${v}"${seg===v?' selected':''}>${SEG_ETIQ[v]}</option>`).join('')}
+        </select>
       </div>
     </article></li>`;
   }).join('');
@@ -323,18 +357,20 @@ function render(opts){
 }
 
 /* ---------- persistencia ---------- */
-const CAMPOS=['practica','modalidad','ciudad','empresa','plazo','curso','estado'];
+const CAMPOS=['practica','modalidad','ciudad','empresa','plazo','curso','estado','seg'];
 function guardar(){
   try{
     const o={orden:S.orden,soloFav:S.soloFav};
     CAMPOS.forEach(k=>o[k]=[...S[k]]);
     localStorage.setItem(K_FILT,JSON.stringify(o));
     localStorage.setItem(K_FAV,JSON.stringify([...FAV]));
+    localStorage.setItem(K_SEG,JSON.stringify(SEG));
   }catch(e){}
 }
 function cargarPrefs(){
   try{
     FAV=new Set(JSON.parse(localStorage.getItem(K_FAV)||'[]'));
+    SEG=JSON.parse(localStorage.getItem(K_SEG)||'{}');
     S.gate=localStorage.getItem(K_GATE);
     const o=JSON.parse(localStorage.getItem(K_FILT)||'null');
     if(o){CAMPOS.forEach(k=>{if(o[k])S[k]=new Set(o[k]);});S.orden=o.orden||'plazo';S.soloFav=!!o.soloFav;}
@@ -354,17 +390,23 @@ document.addEventListener('click',e=>{
   if(chip){const s=S[chip.dataset.campo],v=chip.dataset.v;s.has(v)?s.delete(v):s.add(v);render();return;}
   if(e.target.closest('#favbtn')){S.soloFav=!S.soloFav;render();return;}
   const f=e.target.closest('.fav');
-  if(f){const em=f.dataset.emp;FAV.has(em)?FAV.delete(em):FAV.add(em);if(!FAV.size)S.soloFav=false;render();return;}
+  if(f){const k=f.dataset.key;FAV.has(k)?FAV.delete(k):FAV.add(k);if(!FAV.size)S.soloFav=false;render();return;}
   if(e.target.closest('#estadobtn')){pintarEstado(true);return;}
   if(e.target.closest('#vercerradas')){S.estado.add('Cerrada');render();return;}
   if(e.target.closest('#reset')||e.target.closest('#resetvacio')){
-    ['practica','modalidad','ciudad','empresa','plazo','curso'].forEach(k=>S[k].clear());
+    ['practica','modalidad','ciudad','empresa','plazo','curso','seg'].forEach(k=>S[k].clear());
     S.estado=new Set(['Abierta','Próximamente']);S.soloFav=false;S.q='';$('#q').value='';render();return;
   }
 });
 
 document.addEventListener('change',e=>{
   const t=e.target;
+  if(t.classList.contains('seg-select')){
+    const k=t.dataset.seg,v=t.value;
+    if(v)SEG[k]=v; else delete SEG[k];
+    render();
+    return;
+  }
   if(t.dataset.campo){
     const s=S[t.dataset.campo],v=t.dataset.v;
     t.checked?s.add(v):s.delete(v);
