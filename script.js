@@ -21,7 +21,8 @@ const DEMO={actualizado:new Date().toISOString(),ofertas:[
  {id:'RTC-0005',empresa:'Deloitte',descripcion:'Financial Advisory — M&A Intern',tipo:'Prácticas',practica:'Financiero y M&A',modalidad:'Off-cycle',estado:'Abierta',ciudad:'Madrid',curso:'4º',tipoPlazo:'Rolling',deadline:'',link:'#',alta:'2026-08-09'},
  {id:'RTC-0006',empresa:'KPMG',descripcion:'Audit Graduate Programme',tipo:'Tiempo completo',practica:'Auditoría',modalidad:'Graduate programme',estado:'Cerrada',ciudad:'Madrid',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-06-15',link:'#',alta:'2026-05-01'},
  {id:'RTC-0007',empresa:'Accenture',descripcion:'Technology Consulting Intern',tipo:'Prácticas',practica:'Tecnología y AI',modalidad:'Summer',estado:'Abierta',ciudad:'Bilbao',curso:'2º',tipoPlazo:'Fecha fija',deadline:'2026-08-14',link:'#',alta:'2026-08-10'},
- {id:'RTC-0008',empresa:'EY',descripcion:'EY-Parthenon Summer Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'4º',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'}
+ {id:'RTC-0008',empresa:'EY',descripcion:'EY-Parthenon Summer Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'4º',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'},
+ {id:'RTC-0009',empresa:'PwC',descripcion:'Strategy& Consulting Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Abierta',ciudad:'Valencia',curso:'3º',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'}
 ]};
 
 const HOY=new Date(); HOY.setHours(0,0,0,0);
@@ -95,34 +96,27 @@ function colorMarca(nombre){
   return `hsl(${h} 42% 38%)`;
 }
 
-function textoSobre(color){
-  const m=color.match(/^#([0-9a-f]{6})$/i);
-  if(!m) return '#fff';
-  const v=parseInt(m[1],16);
-  const L=(0.2126*(v>>16&255)+0.7152*(v>>8&255)+0.0722*(v&255))/255;
-  return L>0.62?'#151A2B':'#fff';
-}
-
-function iniciales(nombre){
-  const p=nombre.replace(/&/g,' ').split(/\s+/).filter(w=>w.length>1&&!/^(the|and|de|of|company|group)$/i.test(w));
-  return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase()||nombre.slice(0,2).toUpperCase();
-}
-
-/* Pon true si prefieres que la barra izquierda sea el color de marca
-   en lugar de la señal de urgencia. */
-const BARRA_MARCA = false;
-
-/* ---------- plazo y color ---------- */
+/* ---------- plazo y color ----------
+   nivel, por prioridad:
+   preview  → estado === 'Próximamente' (prioridad sobre el resto)
+   cerrada  → estado === 'Cerrada' o deadline pasado
+   rolling  → tipoPlazo === 'Rolling'
+   sinfecha → tipoPlazo === 'Sin publicar', o sin deadline parseable
+   critico  → abierta, quedan 3 días o menos
+   proximo  → abierta, entre 4 y 14 días
+   lejano   → abierta, más de 14 días
+---------------------------------------- */
 const dias=o=>{if(!o.deadline)return null;const d=new Date(o.deadline+'T00:00:00');return isNaN(d)?null:Math.round((d-HOY)/86400000);};
 function plazo(o){
-  if(o.tipoPlazo==='Rolling')return{txt:'Cierra al cubrirse',urge:false};
-  if(o.tipoPlazo==='Sin publicar')return{txt:'Sin fecha publicada',urge:false};
+  if(o.estado==='Próximamente')return{txt:'Abre pronto',nivel:'preview'};
   const n=dias(o);
-  if(n===null)return{txt:'Sin fecha',urge:false};
-  if(n<0)return{txt:'Cerrada',urge:false};
-  if(n===0)return{txt:'Hoy',urge:true};
-  if(n===1)return{txt:'Mañana',urge:true};
-  return{txt:'Quedan '+n+' días',urge:n<=7};
+  if(o.estado==='Cerrada'||(n!==null&&n<0))return{txt:'Cerrada',nivel:'cerrada'};
+  if(o.tipoPlazo==='Rolling')return{txt:'Aplica ya · cierra al cubrirse',nivel:'rolling'};
+  if(o.tipoPlazo==='Sin publicar'||n===null)return{txt:'Sin fecha',nivel:'sinfecha'};
+  if(n<=3)return{txt:n===0?'Hoy':n===1?'Mañana':'Quedan '+n+' días',nivel:'critico'};
+  if(n<=14)return{txt:'Quedan '+n+' días',nivel:'proximo'};
+  const d=new Date(o.deadline+'T00:00:00');
+  return{txt:d.toLocaleDateString('es-ES',{day:'numeric',month:'short'}),nivel:'lejano'};
 }
 function clase(o){
   if(o.estado==='Cerrada')return 'is-shut';
@@ -257,10 +251,10 @@ function pintarLista(){
   $('#list').innerHTML=items.map(o=>{
     const p=plazo(o),fav=FAV.has(o.empresa);
     const col=colorMarca(o.empresa);
+    const meta=[o.practica,o.modalidad,o.ciudad].filter(Boolean).join(' · ');
     const href=(o.link&&o.link!=='#')?`href="${esc(o.link)}" target="_blank" rel="noopener"`:'';
-    return `<li><article class="card ${clase(o)}" ${BARRA_MARCA?`style="border-left-color:${col}"`:''}>
+    return `<li><article class="card ${clase(o)}" style="border-left-color:${col}">
       <div class="top">
-        <span class="logo" aria-hidden="true" style="background:${col};color:${textoSobre(col)}">${esc(iniciales(o.empresa))}</span>
         <div>
           <div class="empresa"><a ${href}>${esc(o.empresa)}</a></div>
           <p class="desc">${esc(o.descripcion)}</p>
@@ -268,11 +262,8 @@ function pintarLista(){
         <button class="fav" aria-pressed="${fav}" aria-label="Seguir ${esc(o.empresa)}" data-emp="${esc(o.empresa)}">${fav?'★':'☆'}</button>
       </div>
       <div class="tags">
-        <span class="pill est">${esc(o.estado||'—')}</span>
-        ${o.practica?`<span class="pill">${esc(o.practica)}</span>`:''}
-        ${o.modalidad?`<span class="pill">${esc(o.modalidad)}</span>`:''}
-        ${o.ciudad?`<span class="pill">${esc(o.ciudad)}</span>`:''}
-        <span class="dl ${p.urge?'urge':''}">${p.txt}</span>
+        ${meta?`<span class="meta">${esc(meta)}</span>`:''}
+        <span class="plazo n-${p.nivel}">${esc(p.txt)}</span>
       </div>
     </article></li>`;
   }).join('');
@@ -306,11 +297,14 @@ function cargarPrefs(){
 }
 
 /* ---------- eventos ---------- */
+function abrirGate(){$('#gate').classList.add('on');document.body.classList.add('gate-open');}
+function cerrarGate(){$('#gate').classList.remove('on');document.body.classList.remove('gate-open');}
+
 document.addEventListener('click',e=>{
   const g=e.target.closest('.gopt');
   if(g){S.gate=g.dataset.g;try{localStorage.setItem(K_GATE,S.gate)}catch(err){}
-    S.modalidad.clear();$('#gate').classList.remove('on');render();return;}
-  if(e.target.closest('#modo')){$('#gate').classList.add('on');return;}
+    S.modalidad.clear();cerrarGate();render();return;}
+  if(e.target.closest('#modo')){abrirGate();return;}
   const chip=e.target.closest('.chip[data-campo]');
   if(chip){const s=S[chip.dataset.campo],v=chip.dataset.v;s.has(v)?s.delete(v):s.add(v);render();return;}
   if(e.target.closest('#favbtn')){S.soloFav=!S.soloFav;render();return;}
@@ -360,7 +354,7 @@ function aplicar(data,origen){
 
 async function cargar(){
   cargarPrefs();
-  if(!S.gate){S.gate='ambas';$('#gate').classList.add('on');}
+  if(!S.gate){S.gate='ambas';abrirGate();}
   try{const c=localStorage.getItem(K_DATOS);if(c)aplicar(JSON.parse(c),'copia guardada');}catch(e){}
 
   if(API_URL.indexOf('PEGA_AQUI')===0){aplicar(DEMO,'datos de ejemplo');return;}
