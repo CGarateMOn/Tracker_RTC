@@ -440,25 +440,50 @@ function aplicar(data,origen){
   render();
 }
 
+const TIMEOUT_MS=10000, REINTENTOS=2, ESPERA_REINTENTO_MS=1500;
+const espera=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* una sola petición, con límite de tiempo: si el Apps Script tarda en
+   arrancar en frío (o la conexión se cuelga) más de TIMEOUT_MS, se
+   aborta en vez de esperar indefinidamente. */
+async function pedirDatos(){
+  const ctrl=new AbortController();
+  const t=setTimeout(()=>ctrl.abort(),TIMEOUT_MS);
+  try{
+    const r=await fetch(API_URL,{signal:ctrl.signal});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return await r.json();
+  }finally{
+    clearTimeout(t);
+  }
+}
+
 /* cargarDatos() pide la hoja en directo. Se llama al arrancar la
    página Y otra vez al elegir una opción en la puerta de entrada:
    si esa primera petición aún no había terminado (o falló) cuando
    el usuario contestó, aquí se reintenta para que la lista deje de
    mostrar "no hay ninguna oferta" por una carrera con la red y no
    por falta real de resultados. El flag evita lanzar dos peticiones
-   a la vez si ya hay una en curso. */
+   a la vez si ya hay una en curso.
+   Si una petición no responde a tiempo, se reintenta sola hasta
+   REINTENTOS veces antes de rendirse — así no depende de que el
+   usuario refresque la página a mano. */
 let cargando=false;
 async function cargarDatos(){
   if(cargando)return;
   cargando=true;
   try{
     if(API_URL.indexOf('PEGA_AQUI')===0){aplicar(DEMO,'datos de ejemplo');return;}
-    const r=await fetch(API_URL);
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    const data=await r.json();
-    try{localStorage.setItem(K_DATOS,JSON.stringify(data))}catch(e){}
-    aplicar(data,'en directo');
-  }catch(err){
+    for(let intento=0;intento<=REINTENTOS;intento++){
+      try{
+        const data=await pedirDatos();
+        try{localStorage.setItem(K_DATOS,JSON.stringify(data))}catch(e){}
+        aplicar(data,'en directo');
+        return;
+      }catch(err){
+        if(intento<REINTENTOS)await espera(ESPERA_REINTENTO_MS);
+      }
+    }
     if(!TODAS.length){
       $('#count').textContent='';
       $('#list').innerHTML=`<li class="empty"><b>No se pudieron cargar las ofertas</b>Revisa la conexión y vuelve a intentarlo.</li>`;
