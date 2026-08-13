@@ -14,7 +14,7 @@ const CURSOS=['Todos','Penúltimo año','Solo máster'];
 const ESTADOS=['Abierta','Próximamente','Cerrada'];
 
 const DEMO={actualizado:new Date().toISOString(),ofertas:[
- {id:'RTC-0001',empresa:'McKinsey & Company',descripcion:'Business Analyst',tipo:'Tiempo completo',practica:'Estrategia',modalidad:'Graduate programme',estado:'Abierta',ciudad:'Madrid',curso:'',tipoPlazo:'Rolling',deadline:'',link:'#',alta:'2026-08-01'},
+ {id:'RTC-0001',empresa:'McKinsey & Company',descripcion:'Business Analyst',tipo:'Tiempo completo',practica:'Estrategia',modalidad:'Graduate programme',estado:'Abierta',ciudad:'Madrid Barcelona',curso:'',tipoPlazo:'Rolling',deadline:'',link:'#',alta:'2026-08-01'},
  {id:'RTC-0002',empresa:'QuantumBlack',descripcion:'Data Scientist Intern',tipo:'Prácticas',practica:'Tecnología y AI',modalidad:'Summer',estado:'Abierta',ciudad:'Madrid',curso:'Penúltimo año',tipoPlazo:'Fecha fija',deadline:'2026-08-18',link:'#',alta:'2026-08-05'},
  {id:'RTC-0003',empresa:'Bain & Company',descripcion:'Associate Consultant Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'Penúltimo año',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-07-28'},
  {id:'RTC-0004',empresa:'Monitor Deloitte',descripcion:'Strategy Analyst',tipo:'Tiempo completo',practica:'Estrategia',modalidad:'Entrada directa',estado:'Abierta',ciudad:'Barcelona',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-09-30',link:'#',alta:'2026-08-02'},
@@ -51,8 +51,9 @@ function norm(o){
   if(/^cerrad/i.test(est))est='Cerrada';
   else if(/^abiert|^en curso/i.test(est))est='Abierta';
   else if(/^no inici|^próxim|^proxim/i.test(est))est='Próximamente';
+  const ciudad=g('ciudad','Ciudad');
   return {id:g('id','ID'),empresa:g('empresa','Empresa'),descripcion:g('descripcion','Descripción'),
-    tipo,estado:est,ciudad:g('ciudad','Ciudad'),link:g('link','Link'),deadline:g('deadline','Deadline'),
+    tipo,estado:est,ciudad,ciudades:ciudad.split(/\s+/).filter(Boolean),link:g('link','Link'),deadline:g('deadline','Deadline'),
     practica:g('practica','Práctica'),modalidad:g('modalidad','Modalidad'),curso:g('curso','Curso'),
     tipoPlazo:g('tipoPlazo','Tipo de plazo'),alta:g('alta','Fecha de alta')};
 }
@@ -188,7 +189,7 @@ function pasa(o,salta){
   if(salta!=='estado'&&S.estado.size&&o.estado&&!S.estado.has(o.estado))return false;
   if(salta!=='practica'&&!enSet(S.practica,o.practica))return false;
   if(salta!=='modalidad'&&!enSet(S.modalidad,o.modalidad))return false;
-  if(salta!=='ciudad'&&!enSet(S.ciudad,o.ciudad))return false;
+  if(salta!=='ciudad'&&S.ciudad.size&&!o.ciudades.some(c=>S.ciudad.has(c)))return false;
   if(salta!=='empresa'&&!enSet(S.empresa,o.empresa))return false;
   if(salta!=='plazo'&&!enSet(S.plazo,o.tipoPlazo))return false;
   if(salta!=='curso'&&!enSet(S.curso,o.curso))return false;
@@ -198,7 +199,7 @@ function pasa(o,salta){
   return true;
 }
 const resultados=()=>TODAS.filter(o=>pasa(o,null));
-const cuenta=(campo,prop,valor)=>TODAS.filter(o=>pasa(o,campo)&&o[prop]===valor).length;
+const cuenta=(campo,prop,valor)=>TODAS.filter(o=>pasa(o,campo)&&(Array.isArray(o[prop])?o[prop].includes(valor):o[prop]===valor)).length;
 const tieneDatos=prop=>TODAS.some(o=>o[prop]!=='');
 
 function ordenar(a){
@@ -236,7 +237,7 @@ function drop(clave,etiqueta,n,interior,ancho){
 }
 
 function pintarFiltros(){
-  const ciudades=[...new Set(TODAS.map(o=>o.ciudad).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  const ciudades=[...new Set(TODAS.flatMap(o=>o.ciudades))].sort((a,b)=>a.localeCompare(b,'es'));
   const empresas=[...new Set(TODAS.map(o=>o.empresa).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
   const nAv=S.empresa.size+S.plazo.size+S.curso.size;
   const verCurso=S.gate!=='full'&&tieneDatos('curso');
@@ -259,7 +260,7 @@ function pintarFiltros(){
   /* --- fila 2: ciudad, tu candidatura y avanzados --- */
   let h2='';
   if(ciudades.length>1)
-    h2+=drop('ciudad','Ciudad',S.ciudad.size,ops('ciudad','ciudad',ciudades,S.ciudad,ciudades.length>8));
+    h2+=drop('ciudad','Ciudad',S.ciudad.size,ops('ciudad','ciudades',ciudades,S.ciudad,ciudades.length>8));
 
   h2+=drop('seg','Tu candidatura',S.seg.size,opsSeg());
 
@@ -324,7 +325,7 @@ function pintarLista(){
     const clave=claveOferta(o),seg=SEG[clave]||'',fav=FAV.has(clave);
     const p=plazo(o);
     const col=colorMarca(o.empresa);
-    const meta=[o.practica,o.modalidad,o.ciudad].filter(Boolean).join(' · ');
+    const meta=[o.practica,o.modalidad,o.ciudades.join(', ')].filter(Boolean).join(' · ');
     const href=(o.link&&o.link!=='#')?`href="${esc(o.link)}" target="_blank" rel="noopener"`:'';
     return `<li><article class="card ${clase(o)}" style="border-left-color:${col}">
       <div class="top">
