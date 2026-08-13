@@ -36,23 +36,31 @@ header{background:var(--indigo);color:#fff;padding:18px 0 16px}
 .search{width:100%;padding:12px 14px;font:400 16px "Inter Tight",sans-serif;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
 .chips{display:flex;gap:8px;overflow-x:auto;margin-top:9px;padding-bottom:2px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
-.chip{flex:0 0 auto;min-height:38px;padding:8px 13px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--muted);font:500 14px "Inter Tight",sans-serif;white-space:nowrap}
+.chip{flex:0 0 auto;min-height:38px;padding:8px 13px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--muted);font:500 14px "Inter Tight",sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.filtros .chip{padding:8px 8px;font-size:12.5px}
+.filtros .chip .n{margin-left:4px}
 .chip[aria-pressed="true"]{background:var(--indigo);border-color:var(--indigo);color:#fff}
 .chip.vacio{opacity:.4}
 .chip .n{font:700 11px "JetBrains Mono",monospace;opacity:.6;margin-left:6px}
 .sep{flex:0 0 auto;align-self:center;width:1px;height:22px;background:var(--line);margin:0 2px}
 .glabel{flex:0 0 auto;align-self:center;font:500 11px "JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 
-.filtros{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:9px}
+.filtros{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:9px}
 .filtros>*{min-width:0}
 .filtros>details.drop>summary,.filtros>button{width:100%;justify-content:space-between}
-.filtros>details.drop:nth-child(even)>.panel{left:auto;right:0}
+.filtros>details.drop:nth-child(3n)>.panel{left:auto;right:0}
+/* "Más filtros" vive en la columna central de la fila 2: ni
+   left:0 ni right:0 le caben (el panel es ancho), así que se
+   centra sobre su propio desplegable en vez de anclarse a un lado. */
+#row2 details[data-k="mas"]>.panel{left:50%;right:auto;transform:translateX(-50%)}
 .filtros>.ancho{grid-column:1/-1}
 summary .lb{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 summary .car{flex:0 0 auto;opacity:.6;font-size:11px;margin-left:8px}
 details[open]>summary .car{transform:rotate(180deg)}
 details.drop{position:relative}
 details.drop>summary{list-style:none;min-height:42px;display:flex;align-items:center;padding:8px 14px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--muted);font:500 14px "Inter Tight",sans-serif;white-space:nowrap}
+.filtros details.drop>summary{padding:8px 10px;font-size:13px}
+.filtros summary .car{margin-left:4px}
 details.drop>summary::-webkit-details-marker{display:none}
 details.drop[data-on="1"]>summary{background:var(--indigo);border-color:var(--indigo);color:#fff}
 .panel{position:absolute;top:calc(100% + 6px);left:0;z-index:40;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:8px;min-width:235px;max-width:calc(100vw - 32px);max-height:56vh;overflow:auto;box-shadow:0 10px 28px rgba(21,26,43,.16)}

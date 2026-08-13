@@ -242,7 +242,7 @@ function pintarFiltros(){
   const nAv=S.empresa.size+S.plazo.size+S.curso.size;
   const verCurso=S.gate!=='full'&&tieneDatos('curso');
 
-  /* --- fila 1: industria y modalidad --- */
+  /* --- fila 1: industria, modalidad y ciudad --- */
   let h1='';
   if(tieneDatos('practica'))
     h1+=drop('practica','Industria',S.practica.size,ops('practica','practica',PRACTICAS,S.practica));
@@ -255,13 +255,15 @@ function pintarFiltros(){
       : ops('modalidad','modalidad',S.gate==='practicas'?MOD_P:MOD_F,S.modalidad);
     h1+=drop('modalidad',et,S.modalidad.size,inner);
   }
+  if(ciudades.length>1)
+    h1+=drop('ciudad','Ciudad',S.ciudad.size,ops('ciudad','ciudades',ciudades,S.ciudad,ciudades.length>8));
+
   $('#row1').innerHTML=h1;
 
-  /* --- fila 2: ciudad, tu candidatura y avanzados --- */
+  /* --- fila 2: tu candidatura, avanzados y guardadas ---
+     Guardadas se enseña siempre (aunque FAV esté vacío) para que
+     se sepa que la opción existe desde el principio. */
   let h2='';
-  if(ciudades.length>1)
-    h2+=drop('ciudad','Ciudad',S.ciudad.size,ops('ciudad','ciudades',ciudades,S.ciudad,ciudades.length>8));
-
   h2+=drop('seg','Tu candidatura',S.seg.size,opsSeg());
 
   h2+=drop('mas','Más filtros',nAv,
@@ -273,7 +275,7 @@ function pintarFiltros(){
        .map(([v,t])=>`<label class="opt"><input type="radio" name="orden" data-orden="${v}" ${S.orden===v?'checked':''}><span>${t}</span></label>`).join('')}`,
     true);
 
-  if(FAV.size)h2+=`<button class="chip" aria-pressed="${S.soloFav}" id="favbtn">★ Guardadas<span class="n">${FAV.size}</span></button>`;
+  h2+=`<button class="chip" aria-pressed="${S.soloFav}" id="favbtn">★ Guardadas<span class="n">${FAV.size}</span></button>`;
   $('#row2').innerHTML=h2;
 }
 
@@ -350,7 +352,8 @@ function pintarLista(){
 }
 
 function render(opts){
-  const abiertos=[...document.querySelectorAll('details.drop[open]')].map(d=>d.dataset.k);
+  const abiertos=[...document.querySelectorAll('details.drop[open]')]
+    .map(d=>d.dataset.k).filter(k=>k!==(opts&&opts.cerrar));
   pintarControles(opts&&opts.estadoAbierto);
   pintarLista();
   document.querySelectorAll('details.drop').forEach(d=>{if(abiertos.includes(d.dataset.k))d.open=true;});
@@ -411,7 +414,11 @@ document.addEventListener('change',e=>{
   if(t.dataset.campo){
     const s=S[t.dataset.campo],v=t.dataset.v;
     t.checked?s.add(v):s.delete(v);
-    render({estadoAbierto:t.dataset.campo==='estado'});
+    /* estos filtros son de opción rápida: elegir una vez y cerrar.
+       "Más filtros" queda fuera a propósito, ahí sí conviene marcar
+       varias casillas seguidas sin que el panel se cierre solo. */
+    const AUTOCIERRE=['practica','modalidad','ciudad','seg'];
+    render({estadoAbierto:t.dataset.campo==='estado',cerrar:AUTOCIERRE.includes(t.dataset.campo)?t.dataset.campo:null});
     return;
   }
   if(t.dataset.orden){S.orden=t.dataset.orden;render();}
