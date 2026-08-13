@@ -19,7 +19,7 @@ button{font-family:inherit;cursor:pointer}
 #intro.on{display:flex}
 #intro .inner{max-width:480px;margin:0 auto;width:100%}
 .intro-brand{display:flex;align-items:baseline;gap:10px;margin-bottom:30px}
-.intro-mark{font:800 20px "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;background:var(--open);color:#fff;border-radius:8px;padding:4px 9px}
+.intro-mark{font:800 20px "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;background:var(--paper);color:var(--indigo);border-radius:8px;padding:4px 9px}
 .intro-name{font:500 11px "JetBrains Mono",monospace;letter-spacing:.14em;text-transform:uppercase;opacity:.72}
 #intro h1{font:800 30px/1.15 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;margin-bottom:10px}
 #intro p{opacity:.78;margin-bottom:28px;font-size:15px}
@@ -28,8 +28,8 @@ button{font-family:inherit;cursor:pointer}
 .steps .num{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font:700 14px "JetBrains Mono",monospace}
 .steps b{display:block;font:600 16px "Inter Tight",sans-serif;letter-spacing:-.005em}
 .steps small{display:block;font:400 13px "Inter Tight",sans-serif;opacity:.68;line-height:1.4;margin-top:2px}
-.empezar{display:block;width:100%;background:var(--open);color:#fff;border:none;border-radius:var(--r);padding:17px 20px;font:700 17px "Bricolage Grotesque",sans-serif;letter-spacing:-.01em}
-.empezar:hover{filter:brightness(1.06)}
+.empezar{display:block;width:100%;background:var(--paper);color:var(--indigo);border:none;border-radius:var(--r);padding:17px 20px;font:700 17px "Bricolage Grotesque",sans-serif;letter-spacing:-.01em}
+.empezar:hover{filter:brightness(.97)}
 
 /* ---------- puerta de entrada ---------- */
 #gate{position:fixed;inset:0;z-index:100;background:var(--indigo);color:#fff;display:none;flex-direction:column;justify-content:center;overflow:auto;
