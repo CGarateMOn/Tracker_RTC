@@ -409,7 +409,8 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#empezar')){
     try{localStorage.setItem(K_INTRO,'1')}catch(err){}
     cerrarIntro();
-    if(!S.gate){S.gate='ambas';abrirGate();}
+    S.gate='ambas';
+    abrirGate();
     return;
   }
   const g=e.target.closest('.gopt');
