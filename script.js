@@ -300,11 +300,25 @@ function pintarControles(estadoAbierto){
 }
 
 /* ---------- lista ---------- */
+const TARJETA_ESQUELETO=`<li><article class="card skel">
+      <div class="top">
+        <div>
+          <div class="sk sk-title"></div>
+          <div class="sk sk-desc"></div>
+        </div>
+      </div>
+      <div class="tags">
+        <div class="sk sk-meta"></div>
+        <div class="sk sk-plazo"></div>
+      </div>
+      <div class="sk sk-seg"></div>
+    </article></li>`;
+
 function pintarLista(){
-  if(!TODAS.length&&cargando){
-    $('#count').textContent='Cargando…';
+  if(!CARGADO){
+    $('#count').textContent='';
     $('#hint').innerHTML='';
-    $('#list').innerHTML=`<li class="empty"><b>Cargando ofertas…</b>Esto puede tardar unos segundos.</li>`;
+    $('#list').innerHTML=TARJETA_ESQUELETO.repeat(5);
     return;
   }
 
@@ -312,8 +326,12 @@ function pintarLista(){
   $('#count').textContent=items.length===1?'1 oferta':items.length+' ofertas';
 
   const ocultas=!S.estado.has('Cerrada')?TODAS.filter(o=>pasa(o,'estado')&&o.estado==='Cerrada').length:0;
-  $('#hint').innerHTML=(ocultas&&items.length)
-    ?`<div class="hint">${ocultas===1?'Hay 1 oferta similar que ya está cerrada.':'Hay '+ocultas+' ofertas similares que ya están cerradas.'} <button id="vercerradas">Puedes ver${ocultas===1?'la':'las'} si quieres</button></div>`:'';
+  if(PENDIENTE){
+    $('#hint').innerHTML=`<div class="hint">Hay datos más recientes. <button id="aplicarnuevos">Aplicarlos</button></div>`;
+  }else{
+    $('#hint').innerHTML=(ocultas&&items.length)
+      ?`<div class="hint">${ocultas===1?'Hay 1 oferta similar que ya está cerrada.':'Hay '+ocultas+' ofertas similares que ya están cerradas.'} <button id="vercerradas">Puedes ver${ocultas===1?'la':'las'} si quieres</button></div>`:'';
+  }
 
   if(!items.length){
     $('#list').innerHTML=`<li class="empty"><b>No hay ninguna posición con esas características</b>
@@ -388,7 +406,7 @@ function cerrarGate(){$('#gate').classList.remove('on');document.body.classList.
 document.addEventListener('click',e=>{
   const g=e.target.closest('.gopt');
   if(g){S.gate=g.dataset.g;try{localStorage.setItem(K_GATE,S.gate)}catch(err){}
-    S.modalidad.clear();cerrarGate();cargarDatos();render();return;}
+    S.modalidad.clear();cerrarGate();render();return;}
   if(e.target.closest('#modo')){abrirGate();return;}
   const chip=e.target.closest('.chip[data-campo]');
   if(chip){const s=S[chip.dataset.campo],v=chip.dataset.v;s.has(v)?s.delete(v):s.add(v);render();return;}
@@ -397,6 +415,10 @@ document.addEventListener('click',e=>{
   if(f){const k=f.dataset.key;FAV.has(k)?FAV.delete(k):FAV.add(k);if(!FAV.size)S.soloFav=false;render();return;}
   if(e.target.closest('#estadobtn')){pintarEstado(true);return;}
   if(e.target.closest('#vercerradas')){S.estado.add('Cerrada');render();return;}
+  if(e.target.closest('#aplicarnuevos')){
+    if(PENDIENTE){const d=PENDIENTE;PENDIENTE=null;aplicar(d,'en directo');}
+    return;
+  }
   if(e.target.closest('#reset')||e.target.closest('#resetvacio')){
     ['practica','modalidad','ciudad','empresa','plazo','curso','seg'].forEach(k=>S[k].clear());
     S.estado=new Set(['Abierta','Próximamente']);S.soloFav=false;S.q='';$('#q').value='';render();return;
@@ -439,23 +461,42 @@ document.addEventListener('input',e=>{
 let t;
 $('#q').addEventListener('input',e=>{clearTimeout(t);t=setTimeout(()=>{S.q=e.target.value.trim().toLowerCase();render();},130);});
 
-/* ---------- carga ---------- */
+/* =================================================================
+   CARGA EN TRES CAPAS
+   1. INMEDIATO: datos.json (estático, lo escribe la GitHub Action de
+      .github/workflows/actualizar-datos.yml cada hora). Nada bloquea
+      este paso — si responde, se pinta al momento.
+   2. Si datos.json falla (aún no existe, sin red...), la copia
+      guardada en localStorage.
+   3. Si tampoco hay nada, esqueletos (ver TARJETA_ESQUELETO en
+      pintarLista) hasta que responda la capa de fondo.
+   Después de pintar lo que sea, y sin bloquear ese primer pintado,
+   refrescar() intenta la hoja en directo de Apps Script por si acaso
+   datos.json está desactualizado.
+================================================================= */
+let CARGADO=false;
 function aplicar(data,origen){
+  CARGADO=true;
   TODAS=(data.ofertas||[]).map(norm).filter(o=>o.empresa);
   const f=data.actualizado?new Date(data.actualizado).toLocaleString('es-ES',{dateStyle:'medium',timeStyle:'short'}):'—';
-  $('#foot').textContent=`Datos actualizados: ${f} · ${origen}`;
+  let aviso='';
+  if(origen==='datos.json'&&data.actualizado){
+    const horas=(Date.now()-new Date(data.actualizado).getTime())/3600000;
+    if(horas>3)aviso=' · puede estar desactualizado';
+  }
+  $('#foot').textContent=`Datos actualizados: ${f} · ${origen}${aviso}`;
   render();
 }
 
-const TIMEOUT_MS=10000, REINTENTOS=2, ESPERA_REINTENTO_MS=1500;
 const espera=ms=>new Promise(r=>setTimeout(r,ms));
 
-/* una sola petición, con límite de tiempo: si el Apps Script tarda en
-   arrancar en frío (o la conexión se cuelga) más de TIMEOUT_MS, se
-   aborta en vez de esperar indefinidamente. */
-async function pedirDatos(){
+/* ---------- capa 3: refresco en directo, en segundo plano ---------- */
+const REFRESCO_TIMEOUT_MS=20000;
+const REFRESCO_ESPERAS_MS=[1000,2000,4000,8000,16000,30000];
+
+async function pedirDatosEnDirecto(){
   const ctrl=new AbortController();
-  const t=setTimeout(()=>ctrl.abort(),TIMEOUT_MS);
+  const t=setTimeout(()=>ctrl.abort(),REFRESCO_TIMEOUT_MS);
   try{
     const r=await fetch(API_URL,{signal:ctrl.signal});
     if(!r.ok)throw new Error('HTTP '+r.status);
@@ -465,45 +506,61 @@ async function pedirDatos(){
   }
 }
 
-/* cargarDatos() pide la hoja en directo. Se llama al arrancar la
-   página Y otra vez al elegir una opción en la puerta de entrada:
-   si esa primera petición aún no había terminado (o falló) cuando
-   el usuario contestó, aquí se reintenta para que la lista deje de
-   mostrar "no hay ninguna oferta" por una carrera con la red y no
-   por falta real de resultados. El flag evita lanzar dos peticiones
-   a la vez si ya hay una en curso.
-   Si una petición no responde a tiempo, se reintenta sola hasta
-   REINTENTOS veces antes de rendirse — así no depende de que el
-   usuario refresque la página a mano. */
-let cargando=false;
-async function cargarDatos(){
-  if(cargando)return;
-  cargando=true;
+/* datos que llegaron distintos a los pintados mientras el usuario
+   tenía algún filtro activo: se enseña un aviso en vez de repintar
+   solo. #aplicarnuevos (en el listener de clic) los aplica. */
+let PENDIENTE=null;
+let refrescando=false;
+async function refrescar(){
+  if(refrescando||API_URL.indexOf('PEGA_AQUI')===0)return;
+  refrescando=true;
   try{
-    if(API_URL.indexOf('PEGA_AQUI')===0){aplicar(DEMO,'datos de ejemplo');return;}
-    for(let intento=0;intento<=REINTENTOS;intento++){
+    for(let intento=0;;intento++){
       try{
-        const data=await pedirDatos();
+        const data=await pedirDatosEnDirecto();
         try{localStorage.setItem(K_DATOS,JSON.stringify(data))}catch(e){}
-        aplicar(data,'en directo');
+        const nuevas=(data.ofertas||[]).map(norm).filter(o=>o.empresa);
+        if(JSON.stringify(nuevas)===JSON.stringify(TODAS))return; /* idénticos: nada, ni repintar */
+        if(!TODAS.length||!hayFiltros()){
+          aplicar(data,'en directo');
+        }else{
+          PENDIENTE=data;
+          $('#hint').innerHTML=`<div class="hint">Hay datos más recientes. <button id="aplicarnuevos">Aplicarlos</button></div>`;
+        }
         return;
       }catch(err){
-        if(intento<REINTENTOS)await espera(ESPERA_REINTENTO_MS);
+        if(intento>=REFRESCO_ESPERAS_MS.length)return; /* se acabaron los intentos: silencio, ya hay datos válidos */
+        await espera(REFRESCO_ESPERAS_MS[intento]);
       }
     }
-    if(!TODAS.length){
-      $('#count').textContent='';
-      $('#list').innerHTML=`<li class="empty"><b>No se pudieron cargar las ofertas</b>Revisa la conexión y vuelve a intentarlo.</li>`;
-    }
   }finally{
-    cargando=false;
+    refrescando=false;
   }
 }
 
-function cargar(){
+/* ---------- capas 1 y 2: primera pintura ---------- */
+async function cargarInicial(){
   cargarPrefs();
   if(!S.gate){S.gate='ambas';abrirGate();}
-  try{const c=localStorage.getItem(K_DATOS);if(c)aplicar(JSON.parse(c),'copia guardada');}catch(e){}
-  cargarDatos();
+
+  let listo=false;
+  try{
+    const r=await fetch('datos.json?t='+Date.now());
+    if(r.ok){aplicar(await r.json(),'datos.json');listo=true;}
+  }catch(e){}
+
+  if(!listo){
+    try{
+      const c=localStorage.getItem(K_DATOS);
+      if(c){aplicar(JSON.parse(c),'copia guardada');listo=true;}
+    }catch(e){}
+  }
+
+  if(!listo){
+    if(API_URL.indexOf('PEGA_AQUI')===0){aplicar(DEMO,'datos de ejemplo');return;}
+    render(); /* nada pintado todavía: pintarLista() enseña los esqueletos */
+  }
+
+  refrescar();
 }
-cargar();
+cargarInicial();

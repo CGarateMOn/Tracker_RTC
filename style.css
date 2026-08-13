@@ -111,6 +111,16 @@ ul{list-style:none;display:flex;flex-direction:column;gap:10px}
 .seg-select.v-oferta{border-color:var(--open);background:var(--open);color:#fff}
 .seg-select.v-rechazada{border-color:var(--shut);background:var(--shut);color:#fff}
 
+.card.skel{border-left-color:var(--line)}
+.sk{background:var(--line);border-radius:6px;animation:sk-pulso 1.4s ease-in-out infinite}
+.sk-title{width:55%;height:19px;margin-bottom:8px}
+.sk-desc{width:75%;height:15px}
+.sk-meta{width:45%;height:20px}
+.sk-plazo{width:70px;height:20px}
+.sk-seg{width:120px;height:30px;margin-top:8px}
+@keyframes sk-pulso{0%,100%{opacity:1}50%{opacity:.5}}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}
+
 .empty{padding:52px 12px;text-align:center;color:var(--muted)}
 .empty b{display:block;font:600 19px "Bricolage Grotesque",sans-serif;color:var(--ink);margin-bottom:8px}
 .empty button{margin-top:16px;background:var(--indigo);color:#fff;border:none;border-radius:999px;padding:11px 20px;font:600 15px "Inter Tight",sans-serif}
