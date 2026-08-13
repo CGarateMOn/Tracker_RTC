@@ -6,7 +6,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwCM_bRu-hi0G5x822DMGd1
 
 const K_DATOS='rtc-datos-v2', K_FILT='rtc-filtros-v2', K_FAV='rtc-favoritas-v2', K_GATE='rtc-gate-v1', K_SEG='rtc-seguimiento-v1';
 
-const PRACTICAS=['Estrategia','Tecnología y AI','Financiero y M&A','Auditoría'];
+const PRACTICAS=['Estrategia','Tecnología y AI','Financiero y M&A','Auditoría & Legal'];
 const MOD_P=['Summer','Off-cycle'];
 const MOD_F=['Graduate programme','Entrada directa'];
 const PLAZOS=['Fecha fija','Rolling','Sin publicar'];
@@ -19,7 +19,7 @@ const DEMO={actualizado:new Date().toISOString(),ofertas:[
  {id:'RTC-0003',empresa:'Bain & Company',descripcion:'Associate Consultant Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'Penúltimo año',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-07-28'},
  {id:'RTC-0004',empresa:'Monitor Deloitte',descripcion:'Strategy Analyst',tipo:'Tiempo completo',practica:'Estrategia',modalidad:'Entrada directa',estado:'Abierta',ciudad:'Barcelona',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-09-30',link:'#',alta:'2026-08-02'},
  {id:'RTC-0005',empresa:'Deloitte',descripcion:'Financial Advisory — M&A Intern',tipo:'Prácticas',practica:'Financiero y M&A',modalidad:'Off-cycle',estado:'Abierta',ciudad:'Madrid',curso:'Todos',tipoPlazo:'Rolling',deadline:'',link:'#',alta:'2026-08-09'},
- {id:'RTC-0006',empresa:'KPMG',descripcion:'Audit Graduate Programme',tipo:'Tiempo completo',practica:'Auditoría',modalidad:'Graduate programme',estado:'Cerrada',ciudad:'Madrid',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-06-15',link:'#',alta:'2026-05-01'},
+ {id:'RTC-0006',empresa:'KPMG',descripcion:'Audit Graduate Programme',tipo:'Tiempo completo',practica:'Auditoría & Legal',modalidad:'Graduate programme',estado:'Cerrada',ciudad:'Madrid',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-06-15',link:'#',alta:'2026-05-01'},
  {id:'RTC-0007',empresa:'Accenture',descripcion:'Technology Consulting Intern',tipo:'Prácticas',practica:'Tecnología y AI',modalidad:'Summer',estado:'Abierta',ciudad:'Bilbao',curso:'Todos',tipoPlazo:'Fecha fija',deadline:'2026-08-14',link:'#',alta:'2026-08-10'},
  {id:'RTC-0008',empresa:'EY-Parthenon',descripcion:'Summer Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'Solo máster',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'},
  {id:'RTC-0009',empresa:'Strategy&',descripcion:'Consulting Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Abierta',ciudad:'Valencia',curso:'Penúltimo año',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'}
@@ -273,7 +273,7 @@ function pintarFiltros(){
        .map(([v,t])=>`<label class="opt"><input type="radio" name="orden" data-orden="${v}" ${S.orden===v?'checked':''}><span>${t}</span></label>`).join('')}`,
     true);
 
-  if(FAV.size)h2+=`<button class="chip ancho" aria-pressed="${S.soloFav}" id="favbtn">★ Guardadas<span class="n">${FAV.size}</span></button>`;
+  if(FAV.size)h2+=`<button class="chip" aria-pressed="${S.soloFav}" id="favbtn">★ Guardadas<span class="n">${FAV.size}</span></button>`;
   $('#row2').innerHTML=h2;
 }
 
