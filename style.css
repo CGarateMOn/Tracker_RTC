@@ -12,6 +12,18 @@ body.gate-open,body.intro-open{overflow:hidden}
 button{font-family:inherit;cursor:pointer}
 :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 
+/* ---------- escritorio (≥1024px) ----------
+   Todo lo de escritorio vive en bloques @media min-width:1024px,
+   nunca se toca un valor base: así el móvil queda garantizado
+   intacto sin depender de acordarse de comprobarlo cada vez. */
+@media (min-width:1024px){
+  .wrap{
+    max-width:1600px;
+    padding-left:calc(24px + env(safe-area-inset-left));
+    padding-right:calc(24px + env(safe-area-inset-right));
+  }
+}
+
 /* ---------- pantalla de bienvenida (una sola vez) ---------- */
 #intro{position:fixed;inset:0;z-index:110;background:var(--indigo);color:#fff;display:none;flex-direction:column;justify-content:flex-start;overflow:auto;
   padding-top:calc(24px + env(safe-area-inset-top));padding-right:calc(24px + env(safe-area-inset-right));
@@ -137,6 +149,13 @@ label.opt.vacio{opacity:.42}
 .estadoline .cajas{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
 .estadoline .cajas label.opt{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:14px}
 
+@media (min-width:1024px){
+  .bar .wrap{max-width:960px}
+  .filtros{gap:10px}
+  .filtros .chip{padding:8px 13px;font-size:14px}
+  .filtros details.drop>summary{padding:8px 14px;font-size:14px}
+}
+
 .meta-bar{display:flex;align-items:center;gap:12px;padding:14px 0 10px}
 .count{font:500 12px "JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .reset{margin-left:auto;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font:500 13px "Inter Tight",sans-serif;color:var(--muted);background:var(--card)}
@@ -146,6 +165,7 @@ ul{list-style:none;display:flex;flex-direction:column;gap:10px}
 .card{position:relative;background:var(--card);border:1px solid var(--line);border-left:4px solid var(--shut);border-radius:var(--r);padding:14px 16px}
 .card:focus-within{outline:2px solid var(--indigo);outline-offset:2px}
 .top{display:flex;align-items:flex-start;gap:11px}
+.top>div{flex:1;min-width:0}
 .empresa{font:600 19px/1.2 "Bricolage Grotesque",sans-serif;letter-spacing:-.01em}
 .empresa a{color:inherit;text-decoration:none}
 .empresa a::after{content:"";position:absolute;inset:0}
@@ -186,6 +206,26 @@ ul{list-style:none;display:flex;flex-direction:column;gap:10px}
 .hint{margin-bottom:12px;background:#FDF3E2;border:1px solid #E9CE9A;border-radius:var(--r);padding:12px 14px;font-size:14px;color:#6B4E17}
 .hint button{background:none;border:none;color:#6B4E17;font-weight:600;text-decoration:underline;font-size:14px}
 .foot{margin-top:26px;font:500 11px "JetBrains Mono",monospace;color:var(--muted);text-align:center;line-height:1.7}
+
+@media (min-width:1024px){
+  ul{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+    align-items:stretch;
+    gap:16px;
+  }
+  ul>li{min-width:0}
+  .card{height:100%}
+  .empty{grid-column:1/-1}
+}
+
+@media (min-width:1024px) and (hover:hover) and (pointer:fine){
+  .card{transition:border-color .15s ease, box-shadow .15s ease}
+  .card:hover{border-color:var(--indigo);box-shadow:0 6px 20px rgba(21,26,43,.08)}
+  .chip:not([aria-pressed="true"]):hover{border-color:var(--indigo);color:var(--ink)}
+  details.drop:not([data-on="1"])>summary:hover{border-color:var(--indigo);color:var(--ink)}
+  .reset:hover{border-color:var(--indigo);color:var(--ink)}
+}
 
 .site-foot{margin-top:8px;background:var(--indigo)}
 .site-foot .wrap{padding-top:20px;padding-bottom:calc(20px + env(safe-area-inset-bottom));
