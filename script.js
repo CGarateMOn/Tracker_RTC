@@ -311,12 +311,12 @@ function pintarLista(){
 
   const ocultas=!S.estado.has('Cerrada')?TODAS.filter(o=>pasa(o,'estado')&&o.estado==='Cerrada').length:0;
   $('#hint').innerHTML=(ocultas&&items.length)
-    ?`<div class="hint">Hay ${ocultas} ${ocultas===1?'oferta cerrada que también encaja':'ofertas cerradas que también encajan'}. <button id="vercerradas">Mostrarlas</button></div>`:'';
+    ?`<div class="hint">${ocultas===1?'Hay 1 oferta similar que ya está cerrada.':'Hay '+ocultas+' ofertas similares que ya están cerradas.'} <button id="vercerradas">Puedes ver${ocultas===1?'la':'las'} si quieres</button></div>`:'';
 
   if(!items.length){
     $('#list').innerHTML=`<li class="empty"><b>No hay ninguna posición con esas características</b>
       Prueba a quitar algún filtro o a ampliar la búsqueda.
-      ${ocultas?`<br><br>Hay ${ocultas} cerradas que sí encajan.`:''}
+      ${ocultas?`<br><br>${ocultas===1?'Hay 1 similar que ya está cerrada.':'Hay '+ocultas+' similares que ya están cerradas.'}`:''}
       <br><button id="resetvacio">Quitar todos los filtros</button></li>`;
     return;
   }
