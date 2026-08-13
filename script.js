@@ -4,7 +4,7 @@
 ================================================================= */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwCM_bRu-hi0G5x822DMGd1HQsE2HbcogclQN5Z5WdsgVekWF1HWMa7I4M9PjkhC7_e/exec';
 
-const K_DATOS='rtc-datos-v2', K_FILT='rtc-filtros-v2', K_FAV='rtc-favoritas-v2', K_GATE='rtc-gate-v1', K_SEG='rtc-seguimiento-v1';
+const K_DATOS='rtc-datos-v2', K_FILT='rtc-filtros-v2', K_FAV='rtc-favoritas-v2', K_GATE='rtc-gate-v1', K_SEG='rtc-seguimiento-v1', K_INTRO='rtc-intro-v1';
 
 const PRACTICAS=['Estrategia','Tecnología y AI','Financiero y M&A','Auditoría & Legal'];
 const MOD_P=['Summer','Off-cycle'];
@@ -402,8 +402,16 @@ function cargarPrefs(){
 /* ---------- eventos ---------- */
 function abrirGate(){$('#gate').classList.add('on');document.body.classList.add('gate-open');}
 function cerrarGate(){$('#gate').classList.remove('on');document.body.classList.remove('gate-open');}
+function abrirIntro(){$('#intro').classList.add('on');document.body.classList.add('intro-open');}
+function cerrarIntro(){$('#intro').classList.remove('on');document.body.classList.remove('intro-open');}
 
 document.addEventListener('click',e=>{
+  if(e.target.closest('#empezar')){
+    try{localStorage.setItem(K_INTRO,'1')}catch(err){}
+    cerrarIntro();
+    if(!S.gate){S.gate='ambas';abrirGate();}
+    return;
+  }
   const g=e.target.closest('.gopt');
   if(g){S.gate=g.dataset.g;try{localStorage.setItem(K_GATE,S.gate)}catch(err){}
     S.modalidad.clear();cerrarGate();render();return;}
@@ -541,7 +549,10 @@ async function refrescar(){
 /* ---------- capas 1 y 2: primera pintura ---------- */
 async function cargarInicial(){
   cargarPrefs();
-  if(!S.gate){S.gate='ambas';abrirGate();}
+  let primeraVez=false;
+  try{primeraVez=!localStorage.getItem(K_INTRO)}catch(e){}
+  if(primeraVez)abrirIntro();
+  else if(!S.gate){S.gate='ambas';abrirGate();}
 
   let listo=false;
   try{
