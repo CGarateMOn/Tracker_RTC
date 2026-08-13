@@ -18,7 +18,7 @@ const DEMO={actualizado:new Date().toISOString(),ofertas:[
  {id:'RTC-0002',empresa:'QuantumBlack',descripcion:'Data Scientist Intern',tipo:'Prácticas',practica:'Tecnología y AI',modalidad:'Summer',estado:'Abierta',ciudad:'Madrid',curso:'Penúltimo año',tipoPlazo:'Fecha fija',deadline:'2026-08-18',link:'#',alta:'2026-08-05'},
  {id:'RTC-0003',empresa:'Bain & Company',descripcion:'Associate Consultant Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'Penúltimo año',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-07-28'},
  {id:'RTC-0004',empresa:'Monitor Deloitte',descripcion:'Strategy Analyst',tipo:'Tiempo completo',practica:'Estrategia',modalidad:'Entrada directa',estado:'Abierta',ciudad:'Barcelona',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-09-30',link:'#',alta:'2026-08-02'},
- {id:'RTC-0005',empresa:'Deloitte',descripcion:'Financial Advisory — M&A Intern',tipo:'Prácticas',practica:'Financiero y M&A',modalidad:'Off-cycle',estado:'Abierta',ciudad:'Madrid',curso:'Todos',tipoPlazo:'Rolling',deadline:'',link:'#',alta:'2026-08-09'},
+ {id:'RTC-0005',empresa:'Deloitte',descripcion:'Financial Advisory, M&A Intern',tipo:'Prácticas',practica:'Financiero y M&A',modalidad:'Off-cycle',estado:'Abierta',ciudad:'Madrid',curso:'Todos',tipoPlazo:'Rolling',deadline:'',link:'#',alta:'2026-08-09'},
  {id:'RTC-0006',empresa:'KPMG',descripcion:'Audit Graduate Programme',tipo:'Tiempo completo',practica:'Auditoría & Legal',modalidad:'Graduate programme',estado:'Cerrada',ciudad:'Madrid',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-06-15',link:'#',alta:'2026-05-01'},
  {id:'RTC-0007',empresa:'Accenture',descripcion:'Technology Consulting Intern',tipo:'Prácticas',practica:'Tecnología y AI',modalidad:'Summer',estado:'Abierta',ciudad:'Bilbao',curso:'Todos',tipoPlazo:'Fecha fija',deadline:'2026-08-14',link:'#',alta:'2026-08-10'},
  {id:'RTC-0008',empresa:'EY-Parthenon',descripcion:'Summer Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'Solo máster',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'},
@@ -30,7 +30,7 @@ const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 let TODAS=[];
-/* guardadas: claves de OFERTA (claveOferta), no de empresa — guardar
+/* guardadas: claves de OFERTA (claveOferta), no de empresa. Guardar
    una oferta de McKinsey no marca todas las de McKinsey. */
 let FAV=new Set();
 /* estado de candidatura por OFERTA:
@@ -144,7 +144,7 @@ function colorMarca(nombre){
 /* clave estable por oferta para el seguimiento (SEG). Usa el ID de la
    hoja si existe; si no, una combinación de campos que rara vez
    cambia. Si esos campos cambian más adelante (o el ID llega tarde),
-   el seguimiento de esa oferta concreta se pierde — es una limitación
+   el seguimiento de esa oferta concreta se pierde. Es una limitación
    aceptada de no tener backend propio. */
 function claveOferta(o){
   if(o.id) return 'id:'+o.id;
@@ -295,7 +295,7 @@ function hayFiltros(){
 function pintarControles(estadoAbierto){
   pintarFiltros();
   pintarEstado(estadoAbierto);
-  $('#modo').textContent='Buscas: '+({practicas:'Prácticas',full:'Tiempo completo',ambas:'Las dos'}[S.gate]||'—')+' · cambiar';
+  $('#modo').textContent='Buscas: '+({practicas:'Prácticas',full:'Tiempo completo',ambas:'Las dos'}[S.gate]||'-')+' · cambiar';
   $('#reset').hidden=!hayFiltros();
 }
 
@@ -413,6 +413,15 @@ document.addEventListener('click',e=>{
     abrirGate();
     return;
   }
+  /* estrella de muestra del paso 2 de la intro: solo enciende/apaga
+     su propio dibujo, no toca FAV en ningún momento. */
+  const mfav=e.target.closest('.mock-fav');
+  if(mfav){
+    const on=mfav.getAttribute('aria-pressed')==='true';
+    mfav.setAttribute('aria-pressed',on?'false':'true');
+    mfav.textContent=on?'☆':'★';
+    return;
+  }
   const g=e.target.closest('.gopt');
   if(g){S.gate=g.dataset.g;try{localStorage.setItem(K_GATE,S.gate)}catch(err){}
     S.modalidad.clear();cerrarGate();render();return;}
@@ -436,6 +445,13 @@ document.addEventListener('click',e=>{
 
 document.addEventListener('change',e=>{
   const t=e.target;
+  /* desplegable de muestra del paso 3 de la intro: solo repinta su
+     propio color, no toca SEG en ningún momento. */
+  if(t.classList.contains('mock-seg')){
+    t.classList.remove('v-aplicada','v-entrevista','v-oferta','v-rechazada');
+    if(t.value)t.classList.add('v-'+t.value);
+    return;
+  }
   if(t.classList.contains('seg-select')){
     const k=t.dataset.seg,v=t.value;
     if(v)SEG[k]=v; else delete SEG[k];
@@ -474,7 +490,7 @@ $('#q').addEventListener('input',e=>{clearTimeout(t);t=setTimeout(()=>{S.q=e.tar
    CARGA EN TRES CAPAS
    1. INMEDIATO: datos.json (estático, lo escribe la GitHub Action de
       .github/workflows/actualizar-datos.yml cada hora). Nada bloquea
-      este paso — si responde, se pinta al momento.
+      este paso: si responde, se pinta al momento.
    2. Si datos.json falla (aún no existe, sin red...), la copia
       guardada en localStorage.
    3. Si tampoco hay nada, esqueletos (ver TARJETA_ESQUELETO en
@@ -487,13 +503,13 @@ let CARGADO=false;
 function aplicar(data,origen){
   CARGADO=true;
   TODAS=(data.ofertas||[]).map(norm).filter(o=>o.empresa);
-  const f=data.actualizado?new Date(data.actualizado).toLocaleString('es-ES',{dateStyle:'medium',timeStyle:'short'}):'—';
+  const f=data.actualizado?new Date(data.actualizado).toLocaleString('es-ES',{dateStyle:'medium',timeStyle:'short'}):'-';
   let aviso='';
   if(origen==='datos.json'&&data.actualizado){
     const horas=(Date.now()-new Date(data.actualizado).getTime())/3600000;
     if(horas>3)aviso=' · puede estar desactualizado';
   }
-  $('#foot').textContent=`Datos actualizados: ${f} · ${origen}${aviso}`;
+  $('#foot').textContent=`Datos actualizados: ${f}${aviso}`;
   render();
 }
 

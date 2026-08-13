@@ -24,7 +24,7 @@ jobs:
             -o datos.nuevo.json "$APPS_SCRIPT_URL"
 
           if ! jq empty datos.nuevo.json; then
-            echo "::error::La respuesta no es JSON válido — no se toca datos.json."
+            echo "::error::La respuesta no es JSON válido. No se toca datos.json."
             rm -f datos.nuevo.json
             exit 1
           fi

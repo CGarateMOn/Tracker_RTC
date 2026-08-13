@@ -13,7 +13,7 @@ button{font-family:inherit;cursor:pointer}
 :focus-visible{outline:2px solid var(--amber);outline-offset:2px}
 
 /* ---------- pantalla de bienvenida (una sola vez) ---------- */
-#intro{position:fixed;inset:0;z-index:110;background:var(--indigo);color:#fff;display:none;flex-direction:column;justify-content:center;overflow:auto;
+#intro{position:fixed;inset:0;z-index:110;background:var(--indigo);color:#fff;display:none;flex-direction:column;justify-content:flex-start;overflow:auto;
   padding-top:calc(24px + env(safe-area-inset-top));padding-right:calc(24px + env(safe-area-inset-right));
   padding-bottom:calc(24px + env(safe-area-inset-bottom));padding-left:calc(24px + env(safe-area-inset-left))}
 #intro.on{display:flex}
@@ -25,11 +25,51 @@ button{font-family:inherit;cursor:pointer}
 #intro p{opacity:.78;margin-bottom:28px;font-size:15px}
 .steps{list-style:none;display:flex;flex-direction:column;gap:18px;margin-bottom:32px}
 .steps li{display:flex;gap:14px;align-items:flex-start}
+.steps li>div{flex:1;min-width:0}
 .steps .num{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font:700 14px "JetBrains Mono",monospace}
 .steps b{display:block;font:600 16px "Inter Tight",sans-serif;letter-spacing:-.005em}
 .steps small{display:block;font:400 13px "Inter Tight",sans-serif;opacity:.68;line-height:1.4;margin-top:2px}
 .empezar{display:block;width:100%;background:var(--paper);color:var(--indigo);border:none;border-radius:var(--r);padding:17px 20px;font:700 17px "Bricolage Grotesque",sans-serif;letter-spacing:-.01em}
 .empezar:hover{filter:brightness(.97)}
+
+/* vistas previas de la interfaz real dentro de la intro, pero
+   funcionales de verdad (se pueden abrir, marcar, pulsar). Usan sus
+   propias clases "mock-*" (no .drop/.fav/.seg-select) a propósito:
+   así no pueden engancharse a los listeners delegados de la app de
+   verdad ni tocar FAV/SEG/S por accidente. */
+.mock{background:var(--card);border-radius:var(--r);padding:10px;margin-top:12px}
+.mock-row{display:flex;gap:8px;align-items:flex-start}
+.mock-drop{flex:1;min-width:0;border:1px solid var(--line);border-radius:14px;background:var(--card);overflow:hidden}
+.mock-drop summary{list-style:none;cursor:pointer;display:flex;align-items:center;padding:8px 14px;color:var(--muted);
+  font:500 13px "Inter Tight",sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mock-drop summary::-webkit-details-marker{display:none}
+.mock-drop summary i{font-style:normal;opacity:.6;font-size:10px;margin-left:6px;display:inline-block}
+.mock-drop[open] summary{background:var(--indigo);color:#fff}
+.mock-drop[open] summary i{transform:rotate(180deg)}
+.mock-panel{padding:6px 14px 10px;border-top:1px solid var(--line)}
+.mock-panel label{display:flex;align-items:center;gap:9px;padding:5px 4px;font-size:14px;color:var(--ink);cursor:pointer}
+.mock-panel input{width:16px;height:16px;accent-color:var(--indigo);flex:0 0 auto}
+.mock-card{display:flex;align-items:center;gap:10px}
+.mock-empresa{font:600 15px "Bricolage Grotesque",sans-serif;color:var(--ink)}
+
+.mock-fav{background:none;border:none;font-size:20px;line-height:1;color:#C3CAD8;cursor:pointer;padding:4px;border-radius:50%}
+.mock-fav[aria-pressed="true"]{color:var(--amber);--brillo:216,135,27;animation:mock-pulso 1.6s ease-in-out infinite}
+
+.mock-seg{width:auto;appearance:none;-webkit-appearance:none;border:1px solid var(--line);border-radius:999px;
+  background:var(--card);color:var(--muted);font:600 13px "Inter Tight",sans-serif;padding:6px 14px;cursor:pointer;
+  --brillo:122,90,196;animation:mock-pulso 1.6s ease-in-out infinite}
+.mock-seg.v-aplicada{border-color:var(--soon);color:var(--soon);animation:none}
+.mock-seg.v-entrevista{border-color:var(--amber);background:var(--amber);color:#fff;animation:none}
+.mock-seg.v-oferta{border-color:var(--open);background:var(--open);color:#fff;animation:none}
+.mock-seg.v-rechazada{border-color:var(--shut);background:var(--shut);color:#fff;animation:none}
+
+@keyframes mock-pulso{0%,100%{box-shadow:0 0 0 0 rgba(var(--brillo),.35)}50%{box-shadow:0 0 0 6px rgba(var(--brillo),0)}}
+@media (prefers-reduced-motion:reduce){.mock-seg,.mock-fav[aria-pressed="true"]{animation:none}}
+
+.step-nota{opacity:.72}
+.step-nota .num{width:24px;height:24px;font-size:12px}
+.step-nota b{font-size:14px}
+.step-nota small{font-size:12px}
 
 /* ---------- puerta de entrada ---------- */
 #gate{position:fixed;inset:0;z-index:100;background:var(--indigo);color:#fff;display:none;flex-direction:column;justify-content:center;overflow:auto;
