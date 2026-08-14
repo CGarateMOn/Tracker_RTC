@@ -85,9 +85,11 @@ const MARCAS = [
    ramas:['bain','bain vector','vector','bain digital']},
 
   {matriz:'Kearney',       color:'#7A2E3B', ramas:['kearney','a t kearney']},
-  {matriz:'Oliver Wyman',  color:'#0083C1', ramas:['oliver wyman']},
+  {matriz:'Oliver Wyman',  color:'#0083C1', ramas:['oliver wyman','oliver wyman nera','nera']},
   {matriz:'Roland Berger', color:'#009B77', ramas:['roland berger']},
   {matriz:'L.E.K.',        color:'#00539B', ramas:['l e k','lek']},
+  {matriz:'Arthur D. Little', color:'#12A9BF', ramas:['arthur d little']},
+  {matriz:'Advancy',         color:'#B8860B', ramas:['advancy']},
 
   /* --- big four --- */
   {matriz:'Deloitte', color:'#86BC25',
@@ -115,6 +117,7 @@ const MARCAS = [
   /* --- reestructuración y otras --- */
   {matriz:'Alvarez & Marsal', color:'#005587', ramas:['alvarez','alvarez & marsal']},
   {matriz:'AlixPartners',     color:'#E4002B', ramas:['alixpartners','alix']},
+  {matriz:'FTI Consulting',   color:'#003463', ramas:['fti consulting','fti']},
   {matriz:'Grant Thornton',   color:'#4B286D', ramas:['grant thornton']},
   {matriz:'BDO',              color:'#ED1A3B', ramas:['bdo']},
   {matriz:'Forvis Mazars',    color:'#0033A1', ramas:['mazars','forvis']},
