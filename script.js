@@ -6,7 +6,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwCM_bRu-hi0G5x822DMGd1
 
 const K_DATOS='rtc-datos-v2', K_FILT='rtc-filtros-v2', K_FAV='rtc-favoritas-v2', K_GATE='rtc-gate-v1', K_SEG='rtc-seguimiento-v1', K_INTRO='rtc-intro-v1';
 
-const PRACTICAS=['Estrategia','Tecnología y AI','Financiero y M&A','Auditoría & Legal'];
+const PRACTICAS=['Estrategia','Consultoría de Negocio','Tecnología y AI','Financiero y M&A','Auditoría & Legal'];
 const MOD_P=['Summer','Off-cycle'];
 const MOD_F=['Graduate programme','Entrada directa'];
 const PLAZOS=['Fecha fija','Rolling','Sin publicar'];
