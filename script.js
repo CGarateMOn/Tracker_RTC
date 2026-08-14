@@ -164,17 +164,34 @@ function claveOferta(o){
    proximo  → abierta, entre 4 y 14 días
    lejano   → abierta, más de 14 días
 ---------------------------------------- */
-const dias=o=>{if(!o.deadline)return null;const d=new Date(o.deadline+'T00:00:00');return isNaN(d)?null:Math.round((d-HOY)/86400000);};
+/* o.deadline llega unas veces como fecha simple ("2026-09-04", desde la
+   hoja) y otras como ISO completo con hora y "Z" ("2026-09-04T22:00:00.000Z",
+   cuando Apps Script serializa un objeto Date). Si ya trae hora, se respeta
+   tal cual (Date la interpreta en UTC y el navegador la pasa a local); si es
+   solo fecha, se le añade T00:00:00 para fijarla a medianoche local y evitar
+   que el desplazamiento UTC la mueva un día. Único punto de parseo: cualquier
+   otro sitio que necesite la fecha del deadline debe pasar por aquí, no
+   volver a tocar o.deadline directamente. */
+const fechaDeadline=o=>{
+  if(!o.deadline)return null;
+  const d=o.deadline.includes('T')?new Date(o.deadline):new Date(o.deadline+'T00:00:00');
+  return isNaN(d)?null:d;
+};
+const dias=o=>{
+  const d=fechaDeadline(o);
+  if(!d)return null;
+  const medianoche=new Date(d);medianoche.setHours(0,0,0,0);
+  return Math.round((medianoche-HOY)/86400000);
+};
 function plazo(o){
   if(o.estado==='Próximamente')return{txt:'Abre pronto',nivel:'preview'};
   const n=dias(o);
   if(o.estado==='Cerrada'||(n!==null&&n<0))return{txt:'Cerrada',nivel:'cerrada'};
   if(o.tipoPlazo==='Rolling')return{txt:'Aplica ya · cierra al cubrirse',nivel:'rolling'};
   if(o.tipoPlazo==='Sin publicar'||n===null)return{txt:'Sin fecha',nivel:'sinfecha'};
-  if(n<=3)return{txt:n===0?'Hoy':n===1?'Mañana':'Quedan '+n+' días',nivel:'critico'};
-  if(n<=14)return{txt:'Quedan '+n+' días',nivel:'proximo'};
-  const d=new Date(o.deadline+'T00:00:00');
-  return{txt:d.toLocaleDateString('es-ES',{day:'numeric',month:'short'}),nivel:'lejano'};
+  if(n<=3)return{txt:n===0?'Cierra hoy':n===1?'Cierra mañana':'Cierra en '+n+' días',nivel:'critico'};
+  if(n<=14)return{txt:'Cierra en '+n+' días',nivel:'proximo'};
+  return{txt:'Cierra el '+fechaDeadline(o).toLocaleDateString('es-ES',{day:'numeric',month:'short'}),nivel:'lejano'};
 }
 function clase(o){
   if(o.estado==='Cerrada')return 'is-shut';

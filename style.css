@@ -177,7 +177,8 @@ ul{list-style:none;display:flex;flex-direction:column;gap:10px}
 .plazo{font:700 13px "JetBrains Mono",monospace;letter-spacing:.02em;padding:4px 10px;border-radius:6px;text-align:right;white-space:nowrap}
 .plazo.n-critico{background:var(--amber);color:#fff}
 .plazo.n-proximo,.plazo.n-rolling{background:#FDF3E2;color:#6B4E17}
-.plazo.n-lejano,.plazo.n-sinfecha{background:none;color:var(--muted)}
+.plazo.n-lejano{background:none;border:1px solid var(--indigo);color:var(--indigo)}
+.plazo.n-sinfecha{background:none;color:var(--muted)}
 .plazo.n-preview{background:none;border:1px solid var(--soon);color:var(--soon)}
 .plazo.n-cerrada{background:none;color:var(--shut)}
 
