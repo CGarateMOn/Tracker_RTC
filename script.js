@@ -46,7 +46,7 @@ function norm(o){
   const g=(...k)=>{for(const n of k){const v=o[n];if(v!=null&&String(v).trim()!=='')return String(v).trim();}return '';};
   let tipo=g('tipo','Tipo de Oferta');
   if(/intern|práctic|practic/i.test(tipo))tipo='Prácticas';
-  else if(/full|completo/i.test(tipo))tipo='Tiempo completo';
+  else if(/full|completo/i.test(tipo))tipo='Contrato laboral';
   let est=g('estado','Estado');
   if(/^cerrad/i.test(est))est='Cerrada';
   else if(/^abiert|^en curso/i.test(est))est='Abierta';
@@ -201,7 +201,7 @@ function clase(o){
 }
 
 /* ---------- filtrado ---------- */
-const pasaGate=o=>S.gate==='ambas'||!o.tipo||(S.gate==='practicas'?o.tipo==='Prácticas':o.tipo==='Tiempo completo');
+const pasaGate=o=>S.gate==='ambas'||!o.tipo||(S.gate==='practicas'?o.tipo==='Prácticas':o.tipo==='Contrato laboral');
 const enSet=(set,v)=>set.size===0||v===''||set.has(v);
 
 function pasa(o,salta){
@@ -262,16 +262,16 @@ function pintarFiltros(){
   const nAv=S.empresa.size+S.plazo.size+S.curso.size;
   const verCurso=S.gate!=='full'&&tieneDatos('curso');
 
-  /* --- fila 1: industria, modalidad y ciudad --- */
+  /* --- fila 1: sector, modalidad y ciudad --- */
   let h1='';
   if(tieneDatos('practica'))
-    h1+=drop('practica','Industria',S.practica.size,ops('practica','practica',PRACTICAS,S.practica));
+    h1+=drop('practica','Sector',S.practica.size,ops('practica','practica',PRACTICAS,S.practica));
 
   if(tieneDatos('modalidad')){
     const et=S.gate==='practicas'?'Tipo de prácticas':S.gate==='full'?'Tipo de entrada':'Modalidad';
     const inner=S.gate==='ambas'
       ? `<div class="grupo">Prácticas</div>${ops('modalidad','modalidad',MOD_P,S.modalidad)}
-         <div class="grupo">Tiempo completo</div>${ops('modalidad','modalidad',MOD_F,S.modalidad)}`
+         <div class="grupo">Contrato laboral</div>${ops('modalidad','modalidad',MOD_F,S.modalidad)}`
       : ops('modalidad','modalidad',S.gate==='practicas'?MOD_P:MOD_F,S.modalidad);
     h1+=drop('modalidad',et,S.modalidad.size,inner);
   }
@@ -315,7 +315,7 @@ function hayFiltros(){
 function pintarControles(estadoAbierto){
   pintarFiltros();
   pintarEstado(estadoAbierto);
-  $('#modo').textContent='Buscas: '+({practicas:'Prácticas',full:'Tiempo completo',ambas:'Las dos'}[S.gate]||'-')+' · cambiar';
+  $('#modo').textContent='Buscas: '+({practicas:'Prácticas',full:'Contrato laboral',ambas:'Las dos'}[S.gate]||'-')+' · cambiar';
   $('#reset').hidden=!hayFiltros();
 }
 
