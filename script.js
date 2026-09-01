@@ -159,16 +159,13 @@ function claveOferta(o){
   return ['f',sinAcentos(o.empresa),sinAcentos(o.descripcion),sinAcentos(o.ciudad),o.alta].join('|');
 }
 
-/* ---------- plazo y color ----------
-   nivel, por prioridad:
-   preview  → estado === 'Próximamente' (prioridad sobre el resto)
-   cerrada  → estado === 'Cerrada' o deadline pasado
-   rolling  → tipoPlazo === 'Rolling'
-   sinfecha → tipoPlazo === 'Sin publicar', o sin deadline parseable
-   critico  → abierta, quedan 3 días o menos
-   proximo  → abierta, entre 4 y 14 días
-   lejano   → abierta, más de 14 días
----------------------------------------- */
+/* ---------- estado real, plazo y color ----------
+   doble seguridad: si la hoja ya dice Cerrada, se respeta. Si dice
+   Próximamente, también (tiene prioridad, aún no ha abierto). Si dice
+   Abierta (o no dice nada) pero el deadline ya pasó, se trata como
+   Cerrada aunque nadie haya actualizado la hoja. Único punto de verdad:
+   filtro (pasa), tarjeta (clase) y etiqueta (plazo) pasan todos por
+   estadoReal(), así no pueden desincronizarse entre sí. */
 /* o.deadline llega unas veces como fecha simple ("2026-09-04", desde la
    hoja) y otras como ISO completo con hora y "Z" ("2026-09-04T22:00:00.000Z",
    cuando Apps Script serializa un objeto Date). Si ya trae hora, se respeta
@@ -188,10 +185,25 @@ const dias=o=>{
   const medianoche=new Date(d);medianoche.setHours(0,0,0,0);
   return Math.round((medianoche-HOY)/86400000);
 };
-function plazo(o){
-  if(o.estado==='Próximamente')return{txt:'Abre pronto',nivel:'preview'};
+function estadoReal(o){
+  if(o.estado==='Cerrada'||o.estado==='Próximamente')return o.estado;
   const n=dias(o);
-  if(o.estado==='Cerrada'||(n!==null&&n<0))return{txt:'Cerrada',nivel:'cerrada'};
+  return (n!==null&&n<0)?'Cerrada':o.estado;
+}
+/* nivel, por prioridad:
+   preview  → estadoReal === 'Próximamente'
+   cerrada  → estadoReal === 'Cerrada' (estado real de la hoja, o deadline pasado)
+   rolling  → tipoPlazo === 'Rolling'
+   sinfecha → tipoPlazo === 'Sin publicar', o sin deadline parseable
+   critico  → abierta, quedan 3 días o menos
+   proximo  → abierta, entre 4 y 14 días
+   lejano   → abierta, más de 14 días
+---------------------------------------- */
+function plazo(o){
+  const est=estadoReal(o);
+  if(est==='Próximamente')return{txt:'Abre pronto',nivel:'preview'};
+  if(est==='Cerrada')return{txt:'Cerrada',nivel:'cerrada'};
+  const n=dias(o);
   if(o.tipoPlazo==='Rolling')return{txt:'Aplica ya · cierra al cubrirse',nivel:'rolling'};
   if(o.tipoPlazo==='Sin publicar'||n===null)return{txt:'Sin fecha',nivel:'sinfecha'};
   if(n<=3)return{txt:n===0?'Cierra hoy':n===1?'Cierra mañana':'Cierra en '+n+' días',nivel:'critico'};
@@ -199,8 +211,9 @@ function plazo(o){
   return{txt:'Cierra el '+fechaDeadline(o).toLocaleDateString('es-ES',{day:'numeric',month:'short'}),nivel:'lejano'};
 }
 function clase(o){
-  if(o.estado==='Cerrada')return 'is-shut';
-  if(o.estado==='Próximamente')return 'is-soon';
+  const est=estadoReal(o);
+  if(est==='Cerrada')return 'is-shut';
+  if(est==='Próximamente')return 'is-soon';
   const n=dias(o);
   return (n!==null&&n>=0&&n<=7)?'is-urgent':'is-open';
 }
@@ -211,7 +224,7 @@ const enSet=(set,v)=>set.size===0||v===''||set.has(v);
 
 function pasa(o,salta){
   if(!pasaGate(o))return false;
-  if(salta!=='estado'&&S.estado.size&&o.estado&&!S.estado.has(o.estado))return false;
+  if(salta!=='estado'&&S.estado.size){const est=estadoReal(o);if(est&&!S.estado.has(est))return false;}
   if(salta!=='practica'&&!enSet(S.practica,o.practica))return false;
   if(salta!=='modalidad'&&!enSet(S.modalidad,o.modalidad))return false;
   if(salta!=='ciudad'&&S.ciudad.size&&!o.ciudades.some(c=>S.ciudad.has(c)))return false;
@@ -354,7 +367,7 @@ function pintarLista(){
   const items=ordenar(resultados());
   $('#count').textContent=items.length===1?'1 oferta':items.length+' ofertas';
 
-  const ocultas=!S.estado.has('Cerrada')?TODAS.filter(o=>pasa(o,'estado')&&o.estado==='Cerrada').length:0;
+  const ocultas=!S.estado.has('Cerrada')?TODAS.filter(o=>pasa(o,'estado')&&estadoReal(o)==='Cerrada').length:0;
   if(PENDIENTE){
     $('#hint').innerHTML=`<div class="hint">Hay datos más recientes. <button id="aplicarnuevos">Aplicarlos</button></div>`;
   }else{
@@ -429,9 +442,21 @@ function cargarPrefs(){
 }
 
 /* ---------- eventos ---------- */
-function abrirGate(){$('#gate').classList.add('on');document.body.classList.add('gate-open');}
-function cerrarGate(){$('#gate').classList.remove('on');document.body.classList.remove('gate-open');}
-function abrirIntro(){$('#intro').classList.add('on');document.body.classList.add('intro-open');}
+/* promo del grupo de WhatsApp: se enseña (con la tarjeta ya desplegada)
+   cada vez que se cierra el gate, es decir cada vez que se elige o se
+   cambia prácticas/contrato laboral/ambas. Se oculta del todo mientras
+   el gate o la intro están abiertos para que no quede detrás tapada
+   pero seguible por teclado. */
+function abrirPromo(expandida){
+  $('#promo').hidden=false;
+  $('#promoCard').hidden=!expandida;
+  $('#promoBubble').setAttribute('aria-expanded',expandida?'true':'false');
+}
+function ocultarPromo(){$('#promo').hidden=true;}
+
+function abrirGate(){$('#gate').classList.add('on');document.body.classList.add('gate-open');ocultarPromo();}
+function cerrarGate(){$('#gate').classList.remove('on');document.body.classList.remove('gate-open');abrirPromo(true);}
+function abrirIntro(){$('#intro').classList.add('on');document.body.classList.add('intro-open');ocultarPromo();}
 function cerrarIntro(){$('#intro').classList.remove('on');document.body.classList.remove('intro-open');}
 
 document.addEventListener('click',e=>{
@@ -469,6 +494,14 @@ document.addEventListener('click',e=>{
   if(e.target.closest('#reset')||e.target.closest('#resetvacio')){
     ['practica','modalidad','ciudad','empresa','plazo','curso','seg'].forEach(k=>S[k].clear());
     S.estado=new Set(['Abierta','Próximamente']);S.soloFav=false;S.q='';$('#q').value='';render();return;
+  }
+  if(e.target.closest('#promoBubble')){
+    abrirPromo($('#promoCard').hidden);
+    return;
+  }
+  if(e.target.closest('#promoClose')){
+    abrirPromo(false);
+    return;
   }
 });
 
