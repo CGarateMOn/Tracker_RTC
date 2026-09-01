@@ -13,6 +13,11 @@ const PLAZOS=['Fecha fija','Rolling','Sin publicar'];
 const CURSOS=['Todos','Penúltimo año','Solo máster'];
 const ESTADOS=['Abierta','Próximamente','Cerrada'];
 
+/* la hoja sigue mandando "Entrada directa": esto solo traduce cómo se
+   ENSEÑA la modalidad (filtro y tarjetas), nunca el valor que se filtra,
+   cuenta o guarda — ese sigue siendo el de la hoja. */
+const ETIQ_MODALIDAD={'Entrada directa':'Full time'};
+
 const DEMO={actualizado:new Date().toISOString(),ofertas:[
  {id:'RTC-0001',empresa:'McKinsey & Company',descripcion:'Business Analyst',tipo:'Tiempo completo',practica:'Estrategia',modalidad:'Graduate programme',estado:'Abierta',ciudad:'Madrid Barcelona',curso:'',tipoPlazo:'Rolling',deadline:'',link:'#',alta:'2026-08-01'},
  {id:'RTC-0002',empresa:'QuantumBlack',descripcion:'Data Scientist Intern',tipo:'Prácticas',practica:'Tecnología y AI',modalidad:'Summer',estado:'Abierta',ciudad:'Madrid',curso:'Penúltimo año',tipoPlazo:'Fecha fija',deadline:'2026-08-18',link:'#',alta:'2026-08-05'},
@@ -233,11 +238,15 @@ function ordenar(a){
   });
 }
 
-/* ---------- controles ---------- */
-function ops(campo,prop,valores,set,buscador){
+/* ---------- controles ----------
+   etiquetas (opcional): mapa valor real → texto a mostrar. data-v sigue
+   llevando el valor real (con eso se filtra, cuenta y guarda); solo el
+   texto visible del <span> cambia. */
+function ops(campo,prop,valores,set,buscador,etiquetas){
   const l=valores.map(v=>{
     const n=cuenta(campo,prop,v);
-    return `<label class="opt ${n?'':'vacio'}"><input type="checkbox" data-campo="${campo}" data-v="${esc(v)}" ${set.has(v)?'checked':''}><span>${esc(v)}</span><span class="c">${n}</span></label>`;
+    const texto=etiquetas&&etiquetas[v]||v;
+    return `<label class="opt ${n?'':'vacio'}"><input type="checkbox" data-campo="${campo}" data-v="${esc(v)}" ${set.has(v)?'checked':''}><span>${esc(texto)}</span><span class="c">${n}</span></label>`;
   }).join('');
   return (buscador?'<input class="buscar" type="search" placeholder="Buscar…" aria-label="Filtrar la lista">':'')+l;
 }
@@ -271,8 +280,8 @@ function pintarFiltros(){
     const et=S.gate==='practicas'?'Tipo de prácticas':S.gate==='full'?'Tipo de entrada':'Modalidad';
     const inner=S.gate==='ambas'
       ? `<div class="grupo">Prácticas</div>${ops('modalidad','modalidad',MOD_P,S.modalidad)}
-         <div class="grupo">Contrato laboral</div>${ops('modalidad','modalidad',MOD_F,S.modalidad)}`
-      : ops('modalidad','modalidad',S.gate==='practicas'?MOD_P:MOD_F,S.modalidad);
+         <div class="grupo">Contrato laboral</div>${ops('modalidad','modalidad',MOD_F,S.modalidad,false,ETIQ_MODALIDAD)}`
+      : ops('modalidad','modalidad',S.gate==='practicas'?MOD_P:MOD_F,S.modalidad,false,ETIQ_MODALIDAD);
     h1+=drop('modalidad',et,S.modalidad.size,inner);
   }
   if(ciudades.length>1)
@@ -365,7 +374,7 @@ function pintarLista(){
     const clave=claveOferta(o),seg=SEG[clave]||'',fav=FAV.has(clave);
     const p=plazo(o);
     const col=colorMarca(o.empresa);
-    const meta=[o.practica,o.modalidad,o.ciudades.join(', ')].filter(Boolean).join(' · ');
+    const meta=[o.practica,ETIQ_MODALIDAD[o.modalidad]||o.modalidad,o.ciudades.join(', ')].filter(Boolean).join(' · ');
     const href=(o.link&&o.link!=='#')?`href="${esc(o.link)}" target="_blank" rel="noopener"`:'';
     return `<li><article class="card ${clase(o)}" style="border-left-color:${col}">
       <div class="top">
