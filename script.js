@@ -442,20 +442,39 @@ function cargarPrefs(){
 }
 
 /* ---------- eventos ---------- */
-/* promo del grupo de WhatsApp: se enseña (con la tarjeta ya desplegada)
-   cada vez que se cierra el gate, es decir cada vez que se elige o se
-   cambia prácticas/contrato laboral/ambas. Se oculta del todo mientras
-   el gate o la intro están abiertos para que no quede detrás tapada
-   pero seguible por teclado. */
+/* promo del grupo de WhatsApp: dos formas de vivir (ver CSS, sección
+   "promo del grupo de WhatsApp"). "Flotante" (PROMO_COMPACTA=false):
+   burbuja abajo a la derecha, se enseña con la tarjeta ya desplegada
+   cada vez que se cierra el gate. "Chip" (PROMO_COMPACTA=true): en
+   cuanto se cierra la tarjeta con la X una vez, se retira a una
+   píldora junto a "Buscas: ... · cambiar" en la cabecera y desde ahí
+   abre hacia abajo, para no quedar flotando encima de la lista si ya
+   te has unido; vuelve a "flotante" la próxima vez que cambie el gate.
+   Las dos formas se ocultan del todo mientras el gate o la intro están
+   abiertos, para que no queden tapadas pero seguibles por teclado. */
+let PROMO_COMPACTA=false;
 function abrirPromo(expandida){
-  $('#promo').hidden=false;
-  $('#promoCard').hidden=!expandida;
-  $('#promoBubble').setAttribute('aria-expanded',expandida?'true':'false');
+  if(PROMO_COMPACTA){
+    $('#promo').hidden=true;
+    $('#promoChip').hidden=false;
+    $('#promoAnchor').appendChild($('#promoCard'));
+    $('#promoCard').classList.add('abre-abajo');
+    $('#promoCard').hidden=!expandida;
+    $('#promoChip').setAttribute('aria-expanded',expandida?'true':'false');
+  }else{
+    $('#promoChip').hidden=true;
+    $('#promo').hidden=false;
+    $('#promo').insertBefore($('#promoCard'),$('#promoBubble'));
+    $('#promoCard').classList.remove('abre-abajo');
+    $('#promoCard').hidden=!expandida;
+    $('#promoBubble').setAttribute('aria-expanded',expandida?'true':'false');
+  }
 }
-function ocultarPromo(){$('#promo').hidden=true;}
+function ocultarPromo(){$('#promo').hidden=true;$('#promoChip').hidden=true;}
+function compactarPromo(){PROMO_COMPACTA=true;abrirPromo(false);}
 
 function abrirGate(){$('#gate').classList.add('on');document.body.classList.add('gate-open');ocultarPromo();}
-function cerrarGate(){$('#gate').classList.remove('on');document.body.classList.remove('gate-open');abrirPromo(true);}
+function cerrarGate(){$('#gate').classList.remove('on');document.body.classList.remove('gate-open');PROMO_COMPACTA=false;abrirPromo(true);}
 function abrirIntro(){$('#intro').classList.add('on');document.body.classList.add('intro-open');ocultarPromo();}
 function cerrarIntro(){$('#intro').classList.remove('on');document.body.classList.remove('intro-open');}
 
@@ -495,12 +514,19 @@ document.addEventListener('click',e=>{
     ['practica','modalidad','ciudad','empresa','plazo','curso','seg'].forEach(k=>S[k].clear());
     S.estado=new Set(['Abierta','Próximamente']);S.soloFav=false;S.q='';$('#q').value='';render();return;
   }
-  if(e.target.closest('#promoBubble')){
+  if(e.target.closest('#promoBubble')||e.target.closest('#promoChip')){
     abrirPromo($('#promoCard').hidden);
     return;
   }
   if(e.target.closest('#promoClose')){
-    abrirPromo(false);
+    compactarPromo();
+    return;
+  }
+  const cta=e.target.closest('.promo-cta');
+  if(cta){
+    cta.classList.remove('pulsa');
+    void cta.offsetWidth; /* fuerza reflow para poder repetir la animación en el siguiente clic */
+    cta.classList.add('pulsa');
     return;
   }
 });

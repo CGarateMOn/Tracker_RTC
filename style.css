@@ -100,7 +100,10 @@ header{background:var(--indigo);color:#fff;padding:18px 0 16px}
 .brand{display:flex;align-items:baseline;gap:10px}
 .brand b{font:800 24px/1 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em}
 .brand span{font:500 11px/1 "JetBrains Mono",monospace;letter-spacing:.14em;text-transform:uppercase;opacity:.72}
-.modo{margin-top:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:999px;padding:7px 14px;font:500 13px "Inter Tight",sans-serif}
+.header-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.modo{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:999px;padding:7px 14px;font:500 13px "Inter Tight",sans-serif}
+.promo-anchor{position:relative}
+.promo-chip{background:var(--card);border-color:var(--card);color:var(--indigo);font-weight:700}
 
 /* ---------- barra de filtros ---------- */
 .bar{position:sticky;top:0;z-index:30;background:var(--paper);border-bottom:1px solid var(--line);padding:12px 0 9px}
@@ -233,24 +236,41 @@ ul{list-style:none;display:flex;flex-direction:column;gap:10px}
   font:500 10px "JetBrains Mono",monospace;color:#fff;opacity:.8;text-align:center;line-height:1.7}
 
 /* ---------- promo del grupo de WhatsApp ----------
-   Burbuja fija abajo a la derecha; se enseña cada vez que se elige o
-   cambia el gate (ver abrirPromo() en script.js), no antes. */
+   Dos formas de vivir, ver abrirPromo()/cerrarComoChip() en script.js:
+   - "flotante": burbuja fija abajo a la derecha, tarjeta se abre hacia
+     arriba. Es la que se enseña la primera vez, cada vez que se elige
+     o cambia el gate.
+   - "chip": tras cerrar la tarjeta con la X una vez, la burbuja se
+     retira a una píldora junto a "Buscas: ... · cambiar" en la
+     cabecera, y desde ahí la tarjeta se abre hacia abajo (.abre-abajo)
+     en vez de tapar contenido flotando encima de la lista. */
 .promo{position:fixed;z-index:45;right:calc(16px + env(safe-area-inset-right));
   bottom:calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;
   align-items:flex-end;gap:10px}
+.promo[hidden]{display:none}
 .promo-bubble{display:flex;align-items:center;gap:7px;background:var(--indigo);color:#fff;
   border:none;border-radius:999px;padding:12px 16px;font:700 14px "Inter Tight",sans-serif;
-  white-space:nowrap;box-shadow:0 8px 22px rgba(21,26,43,.22)}
+  white-space:nowrap;box-shadow:0 8px 22px rgba(21,26,43,.22);transition:transform .12s ease}
 .promo-bubble:hover{filter:brightness(.96)}
-.promo-bubble svg{width:18px;height:18px;flex:0 0 auto}
+.promo-bubble:active,.promo-chip:active{transform:scale(.95)}
 .promo-card{position:relative;width:max-content;max-width:min(280px,calc(100vw - 64px));
   background:var(--card);border:1px solid var(--line);border-radius:var(--r);
   padding:16px 16px 14px;box-shadow:0 14px 34px rgba(21,26,43,.2)}
+.promo-card.abre-abajo{position:absolute;top:calc(100% + 8px);left:0;z-index:45}
 .promo-card p{padding-right:16px;font-size:14px;line-height:1.45;color:var(--ink)}
 .promo-card b{color:var(--indigo)}
 .promo-close{position:absolute;top:8px;right:8px;background:none;border:none;
   font-size:13px;color:var(--muted);padding:7px;line-height:1;border-radius:50%}
 .promo-close:hover{color:var(--ink)}
 .promo-cta{display:block;margin-top:12px;text-align:center;background:var(--indigo);color:#fff;
-  text-decoration:none;font:700 14px "Inter Tight",sans-serif;border-radius:999px;padding:11px 14px}
+  text-decoration:none;font:700 14px "Inter Tight",sans-serif;border-radius:999px;padding:11px 14px;
+  transition:transform .12s ease}
 .promo-cta:hover{filter:brightness(.96)}
+.promo-cta:active{transform:scale(.95)}
+/* pulso de reacción al pulsar "Únete a RTC", disparado desde JS
+   quitando y volviendo a poner esta clase (ver abrirWhatsapp()). */
+.promo-cta.pulsa{animation:promo-pulso .55s ease-out}
+@keyframes promo-pulso{
+  0%{box-shadow:0 0 0 0 rgba(0,78,84,.5)}
+  100%{box-shadow:0 0 0 16px rgba(0,78,84,0)}
+}
