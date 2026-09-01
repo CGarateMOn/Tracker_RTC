@@ -4,7 +4,7 @@
 ================================================================= */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwCM_bRu-hi0G5x822DMGd1HQsE2HbcogclQN5Z5WdsgVekWF1HWMa7I4M9PjkhC7_e/exec';
 
-const K_DATOS='rtc-datos-v2', K_FILT='rtc-filtros-v2', K_FAV='rtc-favoritas-v2', K_GATE='rtc-gate-v1', K_SEG='rtc-seguimiento-v1', K_INTRO='rtc-intro-v1';
+const K_DATOS='rtc-datos-v2', K_FILT='rtc-filtros-v2', K_FAV='rtc-favoritas-v2', K_GATE='rtc-gate-v1', K_SEG='rtc-seguimiento-v1', K_INTRO='rtc-intro-v1', K_PROMO='rtc-promo-v1';
 
 const PRACTICAS=['Estrategia','Consultoría de Negocio','Tecnología y AI','Financiero y M&A','Auditoría & Legal'];
 const MOD_P=['Summer','Off-cycle'];
@@ -442,39 +442,36 @@ function cargarPrefs(){
 }
 
 /* ---------- eventos ---------- */
-/* promo del grupo de WhatsApp: dos formas de vivir (ver CSS, sección
-   "promo del grupo de WhatsApp"). "Flotante" (PROMO_COMPACTA=false):
-   burbuja abajo a la derecha, se enseña con la tarjeta ya desplegada
-   cada vez que se cierra el gate. "Chip" (PROMO_COMPACTA=true): en
-   cuanto se cierra la tarjeta con la X una vez, se retira a una
-   píldora junto a "Buscas: ... · cambiar" en la cabecera y desde ahí
-   abre hacia abajo, para no quedar flotando encima de la lista si ya
-   te has unido; vuelve a "flotante" la próxima vez que cambie el gate.
-   Las dos formas se ocultan del todo mientras el gate o la intro están
-   abiertos, para que no queden tapadas pero seguibles por teclado. */
-let PROMO_COMPACTA=false;
+/* promo del grupo de WhatsApp: vive siempre en la píldora junto a
+   "Buscas: ... · cambiar" en la cabecera (ver CSS, sección "promo del
+   grupo de WhatsApp"). Se enseña ya abierta cada vez que se elige o
+   cambia el gate; si se cierra con la X se queda colapsada en la
+   píldora (y así se recuerda si se recarga la página) hasta el
+   próximo cambio de gate, que la vuelve a abrir de cero. Se oculta del
+   todo mientras el gate o la intro están abiertos, para que no quede
+   tapada pero seguible por teclado.
+   En móvil la tarjeta va fixed y centrada en el ancho de pantalla,
+   porque anclada al lateral de la píldora se sale del viewport y se
+   corta sin forma de cerrarla; en escritorio (≥1024px) hay sitio de
+   sobra y el CSS la ancla pegada a la píldora con calc(100% + 8px),
+   así que ahí no hace falta calcular el top a mano. */
+const ESCRITORIO=matchMedia('(min-width:1024px)');
 function abrirPromo(expandida){
-  if(PROMO_COMPACTA){
-    $('#promo').hidden=true;
-    $('#promoChip').hidden=false;
-    $('#promoAnchor').appendChild($('#promoCard'));
-    $('#promoCard').classList.add('abre-abajo');
-    $('#promoCard').hidden=!expandida;
-    $('#promoChip').setAttribute('aria-expanded',expandida?'true':'false');
+  $('#promoChip').hidden=false;
+  if(expandida&&!ESCRITORIO.matches){
+    const r=$('#promoChip').getBoundingClientRect();
+    $('#promoCard').style.top=Math.round(r.bottom+8)+'px';
   }else{
-    $('#promoChip').hidden=true;
-    $('#promo').hidden=false;
-    $('#promo').insertBefore($('#promoCard'),$('#promoBubble'));
-    $('#promoCard').classList.remove('abre-abajo');
-    $('#promoCard').hidden=!expandida;
-    $('#promoBubble').setAttribute('aria-expanded',expandida?'true':'false');
+    $('#promoCard').style.top='';
   }
+  $('#promoCard').hidden=!expandida;
+  $('#promoChip').setAttribute('aria-expanded',expandida?'true':'false');
+  try{expandida?localStorage.removeItem(K_PROMO):localStorage.setItem(K_PROMO,'1')}catch(e){}
 }
-function ocultarPromo(){$('#promo').hidden=true;$('#promoChip').hidden=true;}
-function compactarPromo(){PROMO_COMPACTA=true;abrirPromo(false);}
+function ocultarPromo(){$('#promoChip').hidden=true;$('#promoCard').hidden=true;}
 
 function abrirGate(){$('#gate').classList.add('on');document.body.classList.add('gate-open');ocultarPromo();}
-function cerrarGate(){$('#gate').classList.remove('on');document.body.classList.remove('gate-open');PROMO_COMPACTA=false;abrirPromo(true);}
+function cerrarGate(){$('#gate').classList.remove('on');document.body.classList.remove('gate-open');abrirPromo(true);}
 function abrirIntro(){$('#intro').classList.add('on');document.body.classList.add('intro-open');ocultarPromo();}
 function cerrarIntro(){$('#intro').classList.remove('on');document.body.classList.remove('intro-open');}
 
@@ -514,12 +511,12 @@ document.addEventListener('click',e=>{
     ['practica','modalidad','ciudad','empresa','plazo','curso','seg'].forEach(k=>S[k].clear());
     S.estado=new Set(['Abierta','Próximamente']);S.soloFav=false;S.q='';$('#q').value='';render();return;
   }
-  if(e.target.closest('#promoBubble')||e.target.closest('#promoChip')){
+  if(e.target.closest('#promoChip')){
     abrirPromo($('#promoCard').hidden);
     return;
   }
   if(e.target.closest('#promoClose')){
-    compactarPromo();
+    abrirPromo(false);
     return;
   }
   const cta=e.target.closest('.promo-cta');
@@ -658,6 +655,16 @@ async function cargarInicial(){
   try{primeraVez=!localStorage.getItem(K_INTRO)}catch(e){}
   if(primeraVez)abrirIntro();
   else if(!S.gate){S.gate='ambas';abrirGate();}
+  else{
+    /* vuelta con el gate ya elegido: no hay evento de cierre de gate
+       que dispare la promo, así que si se había cerrado con la X antes
+       de recargar, se restaura colapsada en la píldora (sin desplegar
+       la tarjeta sola; si estaba abierta no se repite en cada recarga,
+       para no ser pesados). */
+    let cerrada=false;
+    try{cerrada=localStorage.getItem(K_PROMO)==='1'}catch(e){}
+    if(cerrada)abrirPromo(false);
+  }
 
   let listo=false;
   try{
