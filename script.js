@@ -6,27 +6,6 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwCM_bRu-hi0G5x822DMGd1
 
 const K_DATOS='rtc-datos-v2', K_FILT='rtc-filtros-v2', K_FAV='rtc-favoritas-v2', K_GATE='rtc-gate-v1', K_SEG='rtc-seguimiento-v1', K_INTRO='rtc-intro-v1', K_PROMO='rtc-promo-v1';
 
-/* ---------- analítica ----------
-   No se carga nada de Google (ni se pone una sola cookie) hasta que el
-   usuario ha aceptado: pulsando "¡Empezamos!" en la intro (ver el
-   aviso de cookies en su paso 5), o ya lo había hecho en una visita
-   anterior — en ese caso K_INTRO ya está guardado y se carga sola al
-   entrar (ver cargarInicial()). Antes de eso no se pide nada a
-   googletagmanager.com. */
-let ANALYTICS_CARGADO=false;
-function cargarAnalytics(){
-  if(ANALYTICS_CARGADO)return;
-  ANALYTICS_CARGADO=true;
-  window.dataLayer=window.dataLayer||[];
-  window.gtag=function(){dataLayer.push(arguments);};
-  const s=document.createElement('script');
-  s.async=true;
-  s.src='https://www.googletagmanager.com/gtag/js?id=G-2W0GX8RYPF';
-  document.head.appendChild(s);
-  gtag('js',new Date());
-  gtag('config','G-2W0GX8RYPF');
-}
-
 const PRACTICAS=['Estrategia','Consultoría de Negocio','Tecnología y AI','Financiero y M&A','Auditoría & Legal'];
 const MOD_P=['Summer','Off-cycle'];
 const MOD_F=['Graduate programme','Entrada directa'];
@@ -413,7 +392,7 @@ function pintarLista(){
     return `<li><article class="card ${clase(o)}" style="border-left-color:${col}">
       <div class="top">
         <div>
-          <div class="empresa"><a ${href} data-empresa="${esc(o.empresa)}">${esc(o.empresa)}</a></div>
+          <div class="empresa"><a ${href}>${esc(o.empresa)}</a></div>
           <p class="desc">${esc(o.descripcion)}</p>
         </div>
         <button class="fav" aria-pressed="${fav}" aria-label="Guardar oferta: ${esc(o.descripcion)} en ${esc(o.empresa)}" data-key="${esc(clave)}">${fav?'★':'☆'}</button>
@@ -499,7 +478,6 @@ function cerrarIntro(){$('#intro').classList.remove('on');document.body.classLis
 document.addEventListener('click',e=>{
   if(e.target.closest('#empezar')){
     try{localStorage.setItem(K_INTRO,'1')}catch(err){}
-    cargarAnalytics();
     cerrarIntro();
     S.gate='ambas';
     abrirGate();
@@ -516,22 +494,13 @@ document.addEventListener('click',e=>{
   }
   const g=e.target.closest('.gopt');
   if(g){S.gate=g.dataset.g;try{localStorage.setItem(K_GATE,S.gate)}catch(err){}
-    gtag('set','user_properties',{gate:S.gate});
     S.modalidad.clear();cerrarGate();render();return;}
   if(e.target.closest('#modo')){abrirGate();return;}
   const chip=e.target.closest('.chip[data-campo]');
   if(chip){const s=S[chip.dataset.campo],v=chip.dataset.v;s.has(v)?s.delete(v):s.add(v);render();return;}
   if(e.target.closest('#favbtn')){S.soloFav=!S.soloFav;render();return;}
   const f=e.target.closest('.fav');
-  if(f){
-    const k=f.dataset.key,yaEstaba=FAV.has(k);
-    yaEstaba?FAV.delete(k):FAV.add(k);
-    if(!FAV.size)S.soloFav=false;
-    const o=TODAS.find(x=>claveOferta(x)===k);
-    gtag('event','guardar_oferta',{accion:yaEstaba?'quitar':'guardar',empresa:o&&o.empresa});
-    render();
-    return;
-  }
+  if(f){const k=f.dataset.key;FAV.has(k)?FAV.delete(k):FAV.add(k);if(!FAV.size)S.soloFav=false;render();return;}
   if(e.target.closest('#estadobtn')){pintarEstado(true);return;}
   if(e.target.closest('#vercerradas')){S.estado.add('Cerrada');render();return;}
   if(e.target.closest('#aplicarnuevos')){
@@ -555,13 +524,7 @@ document.addEventListener('click',e=>{
     cta.classList.remove('pulsa');
     void cta.offsetWidth; /* fuerza reflow para poder repetir la animación en el siguiente clic */
     cta.classList.add('pulsa');
-    gtag('event','unete_rtc');
     return;
-  }
-  const enlaceOferta=e.target.closest('.empresa a[data-empresa]');
-  if(enlaceOferta){
-    gtag('event','abrir_oferta',{empresa:enlaceOferta.dataset.empresa});
-    return; /* sin preventDefault: el enlace sigue navegando con normalidad */
   }
 });
 
@@ -577,14 +540,12 @@ document.addEventListener('change',e=>{
   if(t.classList.contains('seg-select')){
     const k=t.dataset.seg,v=t.value;
     if(v)SEG[k]=v; else delete SEG[k];
-    gtag('event','cambiar_seguimiento',{valor:v||'sin_seguimiento'});
     render();
     return;
   }
   if(t.dataset.campo){
     const s=S[t.dataset.campo],v=t.dataset.v;
     t.checked?s.add(v):s.delete(v);
-    gtag('event','usar_filtro',{campo:t.dataset.campo,valor:v,accion:t.checked?'activar':'desactivar'});
     /* estos filtros son de opción rápida: elegir una vez y cerrar.
        "Más filtros" queda fuera a propósito, ahí sí conviene marcar
        varias casillas seguidas sin que el panel se cierre solo. */
@@ -607,13 +568,11 @@ document.addEventListener('input',e=>{
   });
 });
 
-let t,buscadorTrackeado=false;
+let t;
 $('#q').addEventListener('input',e=>{
   clearTimeout(t);
   t=setTimeout(()=>{
     S.q=e.target.value.trim().toLowerCase();
-    /* solo si se usa el buscador o no, nunca qué escribe la gente */
-    if(S.q&&!buscadorTrackeado){buscadorTrackeado=true;gtag('event','buscar');}
     render();
   },130);
 });
@@ -700,10 +659,6 @@ async function cargarInicial(){
   cargarPrefs();
   let primeraVez=false;
   try{primeraVez=!localStorage.getItem(K_INTRO)}catch(e){}
-  if(!primeraVez){
-    cargarAnalytics(); /* ya había aceptado en una visita anterior */
-    if(S.gate)gtag('set','user_properties',{gate:S.gate});
-  }
   if(primeraVez)abrirIntro();
   else if(!S.gate){S.gate='ambas';abrirGate();}
   else{
