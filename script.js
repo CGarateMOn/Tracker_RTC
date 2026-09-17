@@ -6,7 +6,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwCM_bRu-hi0G5x822DMGd1
 
 const K_DATOS='rtc-datos-v2', K_FILT='rtc-filtros-v2', K_FAV='rtc-favoritas-v2', K_GATE='rtc-gate-v1', K_SEG='rtc-seguimiento-v1', K_INTRO='rtc-intro-v1', K_PROMO='rtc-promo-v1';
 
-const PRACTICAS=['Estrategia','Consultoría de Negocio','Tecnología y AI','Financiero y M&A','Auditoría & Legal'];
+const PRACTICAS=['Estrategia','Consultoría de Negocio','Tecnología y AI','Financiero y M&A'];
 const MOD_P=['Summer','Off-cycle'];
 const MOD_F=['Graduate programme','Entrada directa'];
 const PLAZOS=['Fecha fija','Rolling','Sin publicar'];
@@ -593,7 +593,7 @@ $('#q').addEventListener('input',e=>{
 let CARGADO=false;
 function aplicar(data,origen){
   CARGADO=true;
-  TODAS=(data.ofertas||[]).map(norm).filter(o=>o.empresa);
+  TODAS=(data.ofertas||[]).map(norm).filter(o=>o.empresa&&o.practica!=='Auditoría & Legal');
   const f=data.actualizado?new Date(data.actualizado).toLocaleString('es-ES',{dateStyle:'medium',timeStyle:'short'}):'-';
   let aviso='';
   if(origen==='datos.json'&&data.actualizado){
