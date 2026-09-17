@@ -143,7 +143,7 @@ details.drop[data-on="1"]>summary{background:var(--indigo);border-color:var(--in
 label.opt{display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:8px;font-size:15px;cursor:pointer}
 label.opt:hover{background:var(--paper)}
 label.opt input{width:18px;height:18px;accent-color:var(--indigo);flex:0 0 auto}
-label.opt .c{margin-left:auto;font:700 11px "JetBrains Mono",monospace;color:var(--muted)}
+label.opt .c{margin-left:auto;flex:0 0 auto;white-space:nowrap;font:700 11px "JetBrains Mono",monospace;color:var(--muted)}
 label.opt.vacio{opacity:.42}
 .panel .buscar{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;font-size:16px;margin-bottom:4px}
 
