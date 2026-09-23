@@ -84,16 +84,44 @@ button{font-family:inherit;cursor:pointer}
 .step-nota small{font-size:12px}
 
 /* ---------- puerta de entrada ---------- */
-#gate{position:fixed;inset:0;z-index:100;background:var(--indigo);color:#fff;display:none;flex-direction:column;justify-content:center;overflow:auto;
+/* centrado con margin:auto en el hijo, no con justify-content: con
+   cuatro opciones el contenido puede pasar de alto en pantallas bajas, y
+   justify-content:center recorta la parte de arriba sin dejar scrollear
+   hasta ella. */
+#gate{position:fixed;inset:0;z-index:100;background:var(--indigo);color:#fff;display:none;flex-direction:column;overflow:auto;
   padding-top:calc(24px + env(safe-area-inset-top));padding-right:calc(24px + env(safe-area-inset-right));
   padding-bottom:calc(24px + env(safe-area-inset-bottom));padding-left:calc(24px + env(safe-area-inset-left))}
 #gate.on{display:flex}
-#gate .inner{max-width:520px;margin:0 auto;width:100%}
+#gate .inner{max-width:520px;margin:auto;width:100%}
 #gate h1{font:800 34px/1.1 "Bricolage Grotesque",sans-serif;letter-spacing:-.02em;margin-bottom:8px}
 #gate p{opacity:.78;margin-bottom:26px;font-size:15px}
-.gopt{display:block;width:100%;text-align:left;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:var(--r);padding:17px 20px;margin-bottom:10px;font:600 18px "Bricolage Grotesque",sans-serif}
+.gopt{position:relative;display:block;width:100%;text-align:left;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.22);color:#fff;border-radius:var(--r);padding:17px 20px;margin-bottom:10px;font:600 18px "Bricolage Grotesque",sans-serif}
 .gopt small{display:block;font:400 13px "Inter Tight",sans-serif;opacity:.65;margin-top:3px}
 .gopt:hover{background:rgba(255,255,255,.14)}
+
+/* ---------- guía "ahora hay eventos" ----------
+   La enciende JS (empezarGuia en script.js) una sola vez por usuario, y
+   solo a quien ya usaba el tablón antes de que hubiera eventos: primero
+   palpita la píldora de cambiar de sección y, al abrirse el gate, la
+   opción Eventos.
+   La insignia va en ::after porque pintarControles() reescribe el
+   textContent de #modo en cada render: un hijo de verdad no
+   sobreviviría, el pseudoelemento sí. */
+@keyframes palpito{
+  0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.5)}
+  70%{box-shadow:0 0 0 10px rgba(255,255,255,0)}
+}
+.palpita{animation:palpito 1.7s ease-in-out infinite}
+.palpita::after{
+  content:"Nuevo";background:var(--amber);color:#fff;
+  font:700 10px "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;
+  padding:3px 7px;border-radius:999px;
+}
+#modo.palpita{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.45)}
+#modo.palpita::after{margin-left:7px;vertical-align:1px}
+.gopt.palpita{background:rgba(255,255,255,.16);border-color:#fff}
+.gopt.palpita::after{position:absolute;top:14px;right:16px}
+@media (prefers-reduced-motion:reduce){.palpita{animation:none}}
 
 /* ---------- cabecera ---------- */
 header{background:var(--indigo);color:#fff;padding:18px 0 16px}
@@ -120,6 +148,12 @@ header{background:var(--indigo);color:#fff;padding:18px 0 16px}
 .glabel{flex:0 0 auto;align-self:center;font:500 11px "JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 
 .filtros{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:9px}
+/* fila de dos controles (vista de eventos, ver fila() en script.js): se
+   reparten el ancho en vez de dejar hueco a la derecha. El segundo queda
+   pegado al borde, así que su panel se ancla por la derecha igual que
+   hace el tercero de una fila de tres. */
+.filtros.dos{grid-template-columns:1fr 1fr}
+.filtros.dos>*:nth-child(2)>.panel{left:auto;right:0}
 .filtros>*{min-width:0}
 .filtros>details.drop>summary,.filtros>button{width:100%;justify-content:space-between}
 .filtros>details.drop:nth-child(3n)>.panel{left:auto;right:0}
@@ -177,6 +211,10 @@ ul{list-style:none;display:flex;flex-direction:column;gap:10px}
 .desc{margin-top:3px;font-size:15px;color:#39415A}
 .tags{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin-top:12px}
 .meta{font:400 14px "Inter Tight",sans-serif;color:var(--muted)}
+/* eventos: la tarjeta es igual que las demás (fondo blanco); lo que los
+   distingue en la vista "Todo" es esta etiqueta. */
+.tag-evento{font:700 11px "JetBrains Mono",monospace;letter-spacing:.1em;text-transform:uppercase;
+  background:#E1F0F0;color:var(--indigo);border:1px solid #C2DDDD;padding:3px 8px;border-radius:6px;white-space:nowrap}
 .plazo{font:700 13px "JetBrains Mono",monospace;letter-spacing:.02em;padding:4px 10px;border-radius:6px;text-align:right;white-space:nowrap}
 .plazo.n-critico{background:var(--amber);color:#fff}
 .plazo.n-proximo,.plazo.n-rolling{background:#FDF3E2;color:#6B4E17}

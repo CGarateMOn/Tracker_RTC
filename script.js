@@ -4,11 +4,15 @@
 ================================================================= */
 const API_URL = 'https://script.google.com/macros/s/AKfycbwCM_bRu-hi0G5x822DMGd1HQsE2HbcogclQN5Z5WdsgVekWF1HWMa7I4M9PjkhC7_e/exec';
 
-const K_DATOS='rtc-datos-v2', K_FILT='rtc-filtros-v2', K_FAV='rtc-favoritas-v2', K_GATE='rtc-gate-v1', K_SEG='rtc-seguimiento-v1', K_INTRO='rtc-intro-v1', K_PROMO='rtc-promo-v1';
+const K_DATOS='rtc-datos-v2', K_FILT='rtc-filtros-v2', K_FAV='rtc-favoritas-v2', K_GATE='rtc-gate-v1', K_SEG='rtc-seguimiento-v1', K_INTRO='rtc-intro-v1', K_PROMO='rtc-promo-v1', K_NOVEDAD='rtc-novedad-eventos-v1';
 
 const PRACTICAS=['Estrategia','Consultoría de Negocio','Tecnología y AI','Financiero y M&A'];
 const MOD_P=['Summer','Off-cycle'];
 const MOD_F=['Graduate programme','Entrada directa'];
+/* los eventos reutilizan la columna Modalidad de la hoja para guardar su
+   FORMATO. Mismo campo, misma maquinaria de filtrado/conteo: solo cambia
+   el vocabulario y la etiqueta con la que se enseña. */
+const MOD_E=['Presencial','Online','Híbrido'];
 const PLAZOS=['Fecha fija','Rolling','Sin publicar'];
 const CURSOS=['Todos','Penúltimo año','Solo máster'];
 const ESTADOS=['Abierta','Próximamente','Cerrada'];
@@ -27,7 +31,10 @@ const DEMO={actualizado:new Date().toISOString(),ofertas:[
  {id:'RTC-0006',empresa:'KPMG',descripcion:'Audit Graduate Programme',tipo:'Tiempo completo',practica:'Auditoría & Legal',modalidad:'Graduate programme',estado:'Cerrada',ciudad:'Madrid',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-06-15',link:'#',alta:'2026-05-01'},
  {id:'RTC-0007',empresa:'Accenture',descripcion:'Technology Consulting Intern',tipo:'Prácticas',practica:'Tecnología y AI',modalidad:'Summer',estado:'Abierta',ciudad:'Bilbao',curso:'Todos',tipoPlazo:'Fecha fija',deadline:'2026-08-14',link:'#',alta:'2026-08-10'},
  {id:'RTC-0008',empresa:'EY-Parthenon',descripcion:'Summer Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Próximamente',ciudad:'Madrid',curso:'Solo máster',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'},
- {id:'RTC-0009',empresa:'Strategy&',descripcion:'Consulting Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Abierta',ciudad:'Valencia',curso:'Penúltimo año',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'}
+ {id:'RTC-0009',empresa:'Strategy&',descripcion:'Consulting Intern',tipo:'Prácticas',practica:'Estrategia',modalidad:'Summer',estado:'Abierta',ciudad:'Valencia',curso:'Penúltimo año',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-08-11'},
+ {id:'RTC-0010',empresa:'Road to Consulting',descripcion:'Taller de casos: profit & loss',tipo:'Evento',practica:'Estrategia',modalidad:'Online',estado:'Abierta',ciudad:'Online',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-09-28',link:'#',alta:'2026-09-12'},
+ {id:'RTC-0011',empresa:'Bain & Company',descripcion:'Women in Consulting · networking',tipo:'Evento',practica:'Estrategia',modalidad:'Presencial',estado:'Abierta',ciudad:'Madrid',curso:'',tipoPlazo:'Fecha fija',deadline:'2026-10-15',link:'#',alta:'2026-09-14'},
+ {id:'RTC-0012',empresa:'Accenture',descripcion:'Open day de tecnología',tipo:'Evento',practica:'Tecnología y AI',modalidad:'Híbrido',estado:'Próximamente',ciudad:'Barcelona',curso:'',tipoPlazo:'Sin publicar',deadline:'',link:'#',alta:'2026-09-15'}
 ]};
 
 const HOY=new Date(); HOY.setHours(0,0,0,0);
@@ -50,16 +57,29 @@ const S={gate:null,practica:new Set(),modalidad:new Set(),ciudad:new Set(),empre
 function norm(o){
   const g=(...k)=>{for(const n of k){const v=o[n];if(v!=null&&String(v).trim()!=='')return String(v).trim();}return '';};
   let tipo=g('tipo','Tipo de Oferta');
-  if(/intern|práctic|practic/i.test(tipo))tipo='Prácticas';
+  /* "Evento" va el primero: es el único tipo que no es una oferta de
+     trabajo, y así no puede colarse por los patrones de abajo. */
+  if(/^evento|^event\b|charla|webinar|workshop|taller|networking|masterclass|open day/i.test(tipo))tipo='Evento';
+  else if(/intern|práctic|practic/i.test(tipo))tipo='Prácticas';
   else if(/full|completo/i.test(tipo))tipo='Contrato laboral';
   let est=g('estado','Estado');
   if(/^cerrad/i.test(est))est='Cerrada';
   else if(/^abiert|^en curso/i.test(est))est='Abierta';
   else if(/^no inici|^próxim|^proxim/i.test(est))est='Próximamente';
+  /* en los eventos la columna Modalidad es el formato: se lleva al
+     vocabulario de MOD_E igual que tipo/estado, para que el filtro y los
+     contadores cuadren con lo que escriba la hoja ("On-line",
+     "En persona", "in person", "híbrido"...). */
+  let modalidad=g('modalidad','Modalidad');
+  if(tipo==='Evento'){
+    if(/presencial|en.?persona|in.?person/i.test(modalidad))modalidad='Presencial';
+    else if(/on.?line|virtual|remoto|webinar|streaming/i.test(modalidad))modalidad='Online';
+    else if(/h[íi]brid|mixto/i.test(modalidad))modalidad='Híbrido';
+  }
   const ciudad=g('ciudad','Ciudad');
   return {id:g('id','ID'),empresa:g('empresa','Empresa'),descripcion:g('descripcion','Descripción'),
     tipo,estado:est,ciudad,ciudades:ciudad.split(/\s+/).filter(Boolean),link:g('link','Link'),deadline:g('deadline','Deadline'),
-    practica:g('practica','Práctica'),modalidad:g('modalidad','Modalidad'),curso:g('curso','Curso'),
+    practica:g('practica','Práctica'),modalidad,curso:g('curso','Curso'),
     tipoPlazo:g('tipoPlazo','Tipo de plazo'),alta:g('alta','Fecha de alta')};
 }
 
@@ -78,6 +98,10 @@ function norm(o){
    así que añadir empresas a la hoja nunca rompe nada.
 ================================================================= */
 const MARCAS = [
+  /* --- casa: eventos organizados por RTC --- */
+  {matriz:'Road to Consulting', color:'#004E54',
+   ramas:['rtc','road to consulting','talentum']},
+
   /* --- estrategia --- */
   {matriz:'McKinsey & Company', color:'#2251FF',
    ramas:['mckinsey','quantumblack','quantum black','mckinsey digital','orphoz']},
@@ -190,6 +214,26 @@ function estadoReal(o){
   const n=dias(o);
   return (n!==null&&n<0)?'Cerrada':o.estado;
 }
+const esEvento=o=>o.tipo==='Evento';
+
+/* En un evento el "deadline" de la hoja es la FECHA EN QUE SE CELEBRA,
+   no la fecha límite para aplicar: cambia el texto de la etiqueta, no la
+   lógica. Reutiliza estadoReal()/dias() y los mismos niveles de color,
+   así que un evento pasado cuenta como 'Cerrada' y queda oculto por
+   defecto igual que una oferta cerrada. */
+function plazoEvento(o){
+  const est=estadoReal(o);
+  if(est==='Cerrada')return{txt:'Ya se celebró',nivel:'cerrada'};
+  if(est==='Próximamente')return{txt:'Inscripción pronto',nivel:'preview'};
+  const n=dias(o);
+  if(n===null)return{txt:'Sin fecha',nivel:'sinfecha'};
+  if(n===0)return{txt:'Es hoy',nivel:'critico'};
+  if(n===1)return{txt:'Es mañana',nivel:'critico'};
+  if(n<=3)return{txt:'En '+n+' días',nivel:'critico'};
+  if(n<=14)return{txt:'En '+n+' días',nivel:'proximo'};
+  return{txt:'El '+fechaDeadline(o).toLocaleDateString('es-ES',{day:'numeric',month:'short'}),nivel:'lejano'};
+}
+
 /* nivel, por prioridad:
    preview  → estadoReal === 'Próximamente'
    cerrada  → estadoReal === 'Cerrada' (estado real de la hoja, o deadline pasado)
@@ -200,6 +244,7 @@ function estadoReal(o){
    lejano   → abierta, más de 14 días
 ---------------------------------------- */
 function plazo(o){
+  if(esEvento(o))return plazoEvento(o);
   const est=estadoReal(o);
   if(est==='Próximamente')return{txt:'Abre pronto',nivel:'preview'};
   if(est==='Cerrada')return{txt:'Cerrada',nivel:'cerrada'};
@@ -218,8 +263,18 @@ function clase(o){
   return (n!==null&&n>=0&&n<=7)?'is-urgent':'is-open';
 }
 
-/* ---------- filtrado ---------- */
-const pasaGate=o=>S.gate==='ambas'||!o.tipo||(S.gate==='practicas'?o.tipo==='Prácticas':o.tipo==='Contrato laboral');
+/* ---------- filtrado ----------
+   'ambas' (el "Todo" de la portada) enseña ofertas y eventos mezclados;
+   'eventos' enseña SOLO eventos; y los dos gates de trabajo nunca dejan
+   pasar un evento, aunque una fila sin tipo sí siga colándose en ellos
+   como hasta ahora. */
+const pasaGate=o=>{
+  if(S.gate==='ambas')return true;
+  if(S.gate==='eventos')return esEvento(o);
+  if(esEvento(o))return false;
+  if(!o.tipo)return true;
+  return S.gate==='practicas'?o.tipo==='Prácticas':o.tipo==='Contrato laboral';
+};
 const enSet=(set,v)=>set.size===0||v===''||set.has(v);
 
 function pasa(o,salta){
@@ -238,11 +293,19 @@ function pasa(o,salta){
 }
 const resultados=()=>TODAS.filter(o=>pasa(o,null));
 const cuenta=(campo,prop,valor)=>TODAS.filter(o=>pasa(o,campo)&&(Array.isArray(o[prop])?o[prop].includes(valor):o[prop]===valor)).length;
-const tieneDatos=prop=>TODAS.some(o=>o[prop]!=='');
+/* siempre dentro del gate activo: en la vista de eventos no tiene
+   sentido ofrecer "Curso" o "Tipo de plazo" porque los rellenen las
+   ofertas de trabajo, que ahí no se ven. */
+const tieneDatos=prop=>TODAS.some(o=>pasaGate(o)&&o[prop]!=='');
 
 function ordenar(a){
-  if(S.orden==='empresa')return a.sort((x,y)=>x.empresa.localeCompare(y.empresa,'es'));
-  if(S.orden==='recientes')return a.sort((x,y)=>String(y.alta).localeCompare(String(x.alta)));
+  /* la vista de eventos no tiene control de orden (ver pintarFiltros):
+     va siempre por fecha, que es lo único que se quiere de una agenda, y
+     así no se queda clavado el orden que se eligiera en el tablón de
+     ofertas, donde sí hay control y no se podría deshacer desde aquí. */
+  const orden=S.gate==='eventos'?'plazo':S.orden;
+  if(orden==='empresa')return a.sort((x,y)=>x.empresa.localeCompare(y.empresa,'es'));
+  if(orden==='recientes')return a.sort((x,y)=>String(y.alta).localeCompare(String(x.alta)));
   return a.sort((x,y)=>{
     const dx=dias(x),dy=dias(y);
     if(dx===null&&dy===null)return x.empresa.localeCompare(y.empresa,'es');
@@ -278,47 +341,85 @@ function drop(clave,etiqueta,n,interior,ancho){
     <div class="panel${ancho?' wide':''}">${interior}</div></details>`;
 }
 
+const opsOrden=etiquetas=>etiquetas
+  .map(([v,t])=>`<label class="opt"><input type="radio" name="orden" data-orden="${v}" ${S.orden===v?'checked':''}><span>${t}</span></label>`)
+  .join('');
+
+const botonFav=texto=>`<button class="chip" aria-pressed="${S.soloFav}" id="favbtn">★ ${texto}<span class="n">${FAV.size}</span></button>`;
+
+/* la fila es una rejilla de tres columnas: con dos controles se reparten
+   el ancho, y con uno solo se queda a un tercio, como los demás. Sin
+   controles se le quita la clase entera, para que no deje su margen
+   suelto en la barra. */
+const fila=(sel,controles)=>{
+  $(sel).className=controles.length?'filtros'+(controles.length===2?' dos':''):'';
+  $(sel).innerHTML=controles.join('');
+};
+
 function pintarFiltros(){
-  const ciudades=[...new Set(TODAS.flatMap(o=>o.ciudades))].sort((a,b)=>a.localeCompare(b,'es'));
-  const empresas=[...new Set(TODAS.map(o=>o.empresa).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
-  const nAv=S.empresa.size+S.plazo.size+S.curso.size;
+  /* las listas abiertas (ciudad y empresa) se sacan solo de lo que el
+     gate deja ver: si no, la vista de eventos ofrecería las 60 empresas
+     del tablón de ofertas, todas con 0. */
+  const visibles=TODAS.filter(o=>pasaGate(o));
+  const ciudades=[...new Set(visibles.flatMap(o=>o.ciudades))].sort((a,b)=>a.localeCompare(b,'es'));
+  const empresas=[...new Set(visibles.map(o=>o.empresa).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));
+  /* =========== vista de eventos ===========
+     Tres controles y nada más, a propósito: formato (online / presencial),
+     quién lo organiza y guardados. Sector, ciudad, curso, tipo de plazo y
+     seguimiento de candidatura son campos de oferta de trabajo y ahí solo
+     estorban; el orden tampoco está, va fijo por fecha (ver ordenar). */
+  if(S.gate==='eventos'){
+    /* solo los formatos que existen de verdad: si todos los eventos son
+       online, un desplegable con una única opción no filtra nada. */
+    const formatos=MOD_E.filter(v=>visibles.some(o=>o.modalidad===v));
+    const c=[];
+    if(formatos.length>1)
+      c.push(drop('modalidad','Formato',S.modalidad.size,ops('modalidad','modalidad',formatos,S.modalidad)));
+    if(empresas.length>1)
+      c.push(drop('empresa','Organizador',S.empresa.size,ops('empresa','empresa',empresas,S.empresa,empresas.length>8)));
+    c.push(botonFav('Guardados'));
+    fila('#row1',c);
+    fila('#row2',[]);
+    return;
+  }
+
+  const verPlazo=tieneDatos('tipoPlazo');
   const verCurso=S.gate!=='full'&&tieneDatos('curso');
+  const nAv=S.empresa.size+(verPlazo?S.plazo.size:0)+(verCurso?S.curso.size:0);
 
   /* --- fila 1: sector, modalidad y ciudad --- */
-  let h1='';
+  const c1=[];
   if(tieneDatos('practica'))
-    h1+=drop('practica','Sector',S.practica.size,ops('practica','practica',PRACTICAS,S.practica));
+    c1.push(drop('practica','Sector',S.practica.size,ops('practica','practica',PRACTICAS,S.practica)));
 
   if(tieneDatos('modalidad')){
     const et=S.gate==='practicas'?'Tipo de prácticas':S.gate==='full'?'Tipo de entrada':'Modalidad';
     const inner=S.gate==='ambas'
       ? `<div class="grupo">Prácticas</div>${ops('modalidad','modalidad',MOD_P,S.modalidad)}
-         <div class="grupo">Contrato laboral</div>${ops('modalidad','modalidad',MOD_F,S.modalidad,false,ETIQ_MODALIDAD)}`
+         <div class="grupo">Contrato laboral</div>${ops('modalidad','modalidad',MOD_F,S.modalidad,false,ETIQ_MODALIDAD)}
+         <div class="grupo">Eventos</div>${ops('modalidad','modalidad',MOD_E,S.modalidad)}`
       : ops('modalidad','modalidad',S.gate==='practicas'?MOD_P:MOD_F,S.modalidad,false,ETIQ_MODALIDAD);
-    h1+=drop('modalidad',et,S.modalidad.size,inner);
+    c1.push(drop('modalidad',et,S.modalidad.size,inner));
   }
   if(ciudades.length>1)
-    h1+=drop('ciudad','Ciudad',S.ciudad.size,ops('ciudad','ciudades',ciudades,S.ciudad,ciudades.length>8));
+    c1.push(drop('ciudad','Ciudad',S.ciudad.size,ops('ciudad','ciudades',ciudades,S.ciudad,ciudades.length>8)));
 
-  $('#row1').innerHTML=h1;
+  fila('#row1',c1);
 
   /* --- fila 2: tu candidatura, avanzados y guardadas ---
      Guardadas se enseña siempre (aunque FAV esté vacío) para que
      se sepa que la opción existe desde el principio. */
-  let h2='';
-  h2+=drop('seg','Tu candidatura',S.seg.size,opsSeg());
-
-  h2+=drop('mas','Más filtros',nAv,
-    `<div class="grupo">Empresa</div>${ops('empresa','empresa',empresas,S.empresa,true)}
-     ${tieneDatos('tipoPlazo')?`<div class="grupo">Tipo de plazo</div>${ops('plazo','tipoPlazo',PLAZOS,S.plazo)}`:''}
-     ${verCurso?`<div class="grupo">Curso</div>${ops('curso','curso',CURSOS,S.curso)}`:''}
-     <div class="grupo">Orden</div>
-     ${[['plazo','Por plazo'],['recientes','Recién añadidas'],['empresa','Por empresa']]
-       .map(([v,t])=>`<label class="opt"><input type="radio" name="orden" data-orden="${v}" ${S.orden===v?'checked':''}><span>${t}</span></label>`).join('')}`,
-    true);
-
-  h2+=`<button class="chip" aria-pressed="${S.soloFav}" id="favbtn">★ Guardadas<span class="n">${FAV.size}</span></button>`;
-  $('#row2').innerHTML=h2;
+  fila('#row2',[
+    drop('seg','Tu candidatura',S.seg.size,opsSeg()),
+    drop('mas','Más filtros',nAv,
+      `<div class="grupo">Empresa</div>${ops('empresa','empresa',empresas,S.empresa,true)}
+       ${verPlazo?`<div class="grupo">Tipo de plazo</div>${ops('plazo','tipoPlazo',PLAZOS,S.plazo)}`:''}
+       ${verCurso?`<div class="grupo">Curso</div>${ops('curso','curso',CURSOS,S.curso)}`:''}
+       <div class="grupo">Orden</div>
+       ${opsOrden([['plazo','Por plazo'],['recientes','Recién añadidas'],['empresa','Por empresa']])}`,
+      true),
+    botonFav('Guardadas')
+  ]);
 }
 
 function pintarEstado(abierto){
@@ -337,7 +438,7 @@ function hayFiltros(){
 function pintarControles(estadoAbierto){
   pintarFiltros();
   pintarEstado(estadoAbierto);
-  $('#modo').textContent='Buscas: '+({practicas:'Prácticas',full:'Contrato laboral',ambas:'Las dos'}[S.gate]||'-')+' · cambiar';
+  $('#modo').textContent='Buscas: '+({practicas:'Prácticas',full:'Contrato laboral',eventos:'Eventos',ambas:'Todo'}[S.gate]||'-')+' · cambiar';
   $('#reset').hidden=!hayFiltros();
 }
 
@@ -364,49 +465,79 @@ function pintarLista(){
     return;
   }
 
+  /* en el gate de eventos toda la lista son eventos, así que los textos
+     de alrededor (contador, avisos, vacío) hablan de eventos y no de
+     ofertas. En "Todo" van mezclados y se sigue diciendo "ofertas". */
+  const vistaEv=S.gate==='eventos';
   const items=ordenar(resultados());
-  $('#count').textContent=items.length===1?'1 oferta':items.length+' ofertas';
+  /* en "Todo" la lista puede llevar ofertas y eventos a la vez: ahí
+     "ofertas" sería mentira a medias, así que se cuentan resultados. */
+  const nombre=vistaEv?['evento','eventos']
+    :items.some(esEvento)?['resultado','resultados']
+    :['oferta','ofertas'];
+  $('#count').textContent=items.length===1?'1 '+nombre[0]:items.length+' '+nombre[1];
 
   const ocultas=!S.estado.has('Cerrada')?TODAS.filter(o=>pasa(o,'estado')&&estadoReal(o)==='Cerrada').length:0;
+  const pasadas=ocultas===1
+    ?(vistaEv?'Hay 1 evento parecido que ya se celebró.':'Hay 1 oferta similar que ya está cerrada.')
+    :'Hay '+ocultas+(vistaEv?' eventos parecidos que ya se celebraron.':' ofertas similares que ya están cerradas.');
   if(PENDIENTE){
     $('#hint').innerHTML=`<div class="hint">Hay datos más recientes. <button id="aplicarnuevos">Aplicarlos</button></div>`;
   }else{
     $('#hint').innerHTML=(ocultas&&items.length)
-      ?`<div class="hint">${ocultas===1?'Hay 1 oferta similar que ya está cerrada.':'Hay '+ocultas+' ofertas similares que ya están cerradas.'} <button id="vercerradas">Puedes ver${ocultas===1?'la':'las'} si quieres</button></div>`:'';
+      ?`<div class="hint">${pasadas} <button id="vercerradas">Puedes ver${vistaEv?(ocultas===1?'lo':'los'):(ocultas===1?'la':'las')} si quieres</button></div>`:'';
   }
 
   if(!items.length){
-    $('#list').innerHTML=`<li class="empty"><b>No hay ninguna posición con esas características</b>
+    /* la hoja todavía no trae ni un evento: no es que los filtros tapen
+       nada, es que no hay qué enseñar. Pedir "quita filtros" ahí solo
+       confunde. */
+    if(vistaEv&&!TODAS.some(esEvento)){
+      $('#list').innerHTML=`<li class="empty"><b>Aún no hay eventos publicados</b>
+        En cuanto haya charlas, talleres u open days aparecerán aquí.
+        <br><button id="abrirgate">Ver las ofertas</button></li>`;
+      return;
+    }
+    $('#list').innerHTML=`<li class="empty"><b>${vistaEv?'No hay ningún evento con esas características':'No hay ninguna posición con esas características'}</b>
       Prueba a quitar algún filtro o a ampliar la búsqueda.
-      ${ocultas?`<br><br>${ocultas===1?'Hay 1 similar que ya está cerrada.':'Hay '+ocultas+' similares que ya están cerradas.'}`:''}
+      ${ocultas?`<br><br>${pasadas}`:''}
       <br><button id="resetvacio">Quitar todos los filtros</button></li>`;
     return;
   }
 
   $('#list').innerHTML=items.map(o=>{
     const clave=claveOferta(o),seg=SEG[clave]||'',fav=FAV.has(clave);
+    const ev=esEvento(o);
     const p=plazo(o);
     const col=colorMarca(o.empresa);
-    const meta=[o.practica,ETIQ_MODALIDAD[o.modalidad]||o.modalidad,o.ciudades.join(', ')].filter(Boolean).join(' · ');
-    const href=(o.link&&o.link!=='#')?`href="${esc(o.link)}" target="_blank" rel="noopener"`:'';
+    /* sin repetidos: un evento "Online" celebrado "Online" pone las dos
+       cosas en la misma columna de la hoja y quedaría "Online · Online". */
+    const meta=[...new Set([o.practica,ETIQ_MODALIDAD[o.modalidad]||o.modalidad,o.ciudades.join(', ')].filter(Boolean))].join(' · ');
+    /* solo http(s): el marcador "#" de la hoja, una celda a medias o un
+       "javascript:" pegado por error no se convierten en enlace. */
+    const href=/^https?:\/\//i.test(o.link)?`href="${esc(o.link)}" target="_blank" rel="noopener"`:'';
+    /* un evento no es una candidatura: se puede guardar con la estrella,
+       pero no lleva el desplegable de seguimiento (aplicada/entrevista/
+       oferta/rechazada), que ahí no significaría nada. */
     return `<li><article class="card ${clase(o)}" style="border-left-color:${col}">
       <div class="top">
         <div>
           <div class="empresa"><a ${href}>${esc(o.empresa)}</a></div>
           <p class="desc">${esc(o.descripcion)}</p>
         </div>
-        <button class="fav" aria-pressed="${fav}" aria-label="Guardar oferta: ${esc(o.descripcion)} en ${esc(o.empresa)}" data-key="${esc(clave)}">${fav?'★':'☆'}</button>
+        <button class="fav" aria-pressed="${fav}" aria-label="Guardar ${ev?'evento':'oferta'}: ${esc(o.descripcion)} ${ev?'de':'en'} ${esc(o.empresa)}" data-key="${esc(clave)}">${fav?'★':'☆'}</button>
       </div>
       <div class="tags">
+        ${ev?'<span class="tag-evento">Evento</span>':''}
         ${meta?`<span class="meta">${esc(meta)}</span>`:''}
         <span class="plazo n-${p.nivel}">${esc(p.txt)}</span>
       </div>
-      <div class="seg">
+      ${ev?'':`<div class="seg">
         <select class="seg-select${seg?' v-'+seg:''}" data-seg="${esc(clave)}" aria-label="Tu candidatura en ${esc(o.empresa)}">
           <option value=""${seg?'':' selected'}>Sin seguimiento</option>
           ${Object.keys(SEG_ETIQ).map(v=>`<option value="${v}"${seg===v?' selected':''}>${SEG_ETIQ[v]}</option>`).join('')}
         </select>
-      </div>
+      </div>`}
     </article></li>`;
   }).join('');
 }
@@ -442,20 +573,28 @@ function cargarPrefs(){
 }
 
 /* ---------- eventos ---------- */
-/* promo del grupo de WhatsApp: vive siempre en la píldora junto a
-   "Buscas: ... · cambiar" en la cabecera (ver CSS, sección "promo del
-   grupo de WhatsApp"). Se enseña ya abierta cada vez que se elige o
-   cambia el gate; si se cierra con la X se queda colapsada en la
-   píldora (y así se recuerda si se recarga la página) hasta el
-   próximo cambio de gate, que la vuelve a abrir de cero. Se oculta del
-   todo mientras el gate o la intro están abiertos, para que no quede
-   tapada pero seguible por teclado.
+/* promo del grupo de WhatsApp: vive siempre en la píldora "¡Únete a
+   RTC!" junto a "Buscas: ... · cambiar" en la cabecera (ver CSS,
+   sección "promo del grupo de WhatsApp").
+
+   La tarjeta desplegada se enseña SOLO UNA VEZ por navegador: la
+   primera vez que se llega al tablón. A partir de ahí queda la píldora,
+   que sigue abriéndola a mano cuando se pulsa, pero nunca se despliega
+   sola otra vez — ni al cambiar de gate, ni al recargar. K_PROMO guarda
+   ese "ya se le enseñó"; quien ya la hubiera cerrado con la X antes de
+   este cambio tiene la clave puesta y no la vuelve a ver, que es justo
+   lo que quería.
+
+   Se oculta del todo mientras el gate o la intro están abiertos, para
+   que no quede tapada pero seguible por teclado.
+
    En móvil la tarjeta va fixed y centrada en el ancho de pantalla,
    porque anclada al lateral de la píldora se sale del viewport y se
    corta sin forma de cerrarla; en escritorio (≥1024px) hay sitio de
    sobra y el CSS la ancla pegada a la píldora con calc(100% + 8px),
    así que ahí no hace falta calcular el top a mano. */
 const ESCRITORIO=matchMedia('(min-width:1024px)');
+const promoYaVista=()=>{try{return localStorage.getItem(K_PROMO)==='1'}catch(e){return false}};
 function abrirPromo(expandida){
   $('#promoChip').hidden=false;
   if(expandida&&!ESCRITORIO.matches){
@@ -466,12 +605,56 @@ function abrirPromo(expandida){
   }
   $('#promoCard').hidden=!expandida;
   $('#promoChip').setAttribute('aria-expanded',expandida?'true':'false');
-  try{expandida?localStorage.removeItem(K_PROMO):localStorage.setItem(K_PROMO,'1')}catch(e){}
+  /* se marca al enseñarla, nunca se desmarca: es un "ya la ha visto" */
+  if(expandida){try{localStorage.setItem(K_PROMO,'1')}catch(e){}}
 }
 function ocultarPromo(){$('#promoChip').hidden=true;$('#promoCard').hidden=true;}
 
-function abrirGate(){$('#gate').classList.add('on');document.body.classList.add('gate-open');ocultarPromo();}
-function cerrarGate(){$('#gate').classList.remove('on');document.body.classList.remove('gate-open');abrirPromo(true);}
+/* =================================================================
+   GUÍA "AHORA HAY EVENTOS"
+   Solo para quien ya usaba el tablón antes de que existieran: quien
+   entra por primera vez ve la opción en el gate desde el minuto uno y
+   no necesita que se le señale.
+   Son dos pasos encadenados: palpita la píldora "Buscas: ... · cambiar"
+   y, en cuanto se abre el gate, deja de palpitar esa y pasa a palpitar
+   la opción "Eventos". Elegir cualquier sección la termina.
+   Se enseña UNA sola vez por navegador: K_NOVEDAD se marca al arrancar
+   la guía, no al terminarla, para no repetirla si se recarga a medias.
+   Si localStorage no está disponible se da por vista, y así no reaparece
+   en cada carga de una ventana privada.
+   El resalte es puro CSS (clase .palpita, ver "guía ahora hay eventos"
+   en style.css); la insignia "Nuevo" va en un ::after a propósito,
+   porque pintarControles() reescribe el textContent de #modo en cada
+   render y se llevaría por delante cualquier hijo que le colgáramos.
+================================================================= */
+let GUIA=false;
+const novedadVista=()=>{try{return localStorage.getItem(K_NOVEDAD)==='1'}catch(e){return true}};
+const marcarNovedadVista=()=>{try{localStorage.setItem(K_NOVEDAD,'1')}catch(e){}};
+const opcionEventos=()=>document.querySelector('.gopt[data-g="eventos"]');
+
+function empezarGuia(){
+  if(novedadVista())return;
+  marcarNovedadVista();
+  GUIA=true;
+  /* si el gate ya está abierto se salta el primer paso */
+  if($('#gate').classList.contains('on'))pasoEventos();
+  else $('#modo').classList.add('palpita');
+}
+function pasoEventos(){
+  $('#modo').classList.remove('palpita');
+  const op=opcionEventos(); if(op)op.classList.add('palpita');
+}
+function finGuia(){
+  if(!GUIA)return;
+  GUIA=false;
+  $('#modo').classList.remove('palpita');
+  const op=opcionEventos(); if(op)op.classList.remove('palpita');
+}
+
+function abrirGate(){$('#gate').classList.add('on');document.body.classList.add('gate-open');ocultarPromo();if(GUIA)pasoEventos();}
+/* al salir del gate la promo solo se despliega si es la primera vez;
+   después queda la píldora, que sigue abriéndola a mano */
+function cerrarGate(){$('#gate').classList.remove('on');document.body.classList.remove('gate-open');abrirPromo(!promoYaVista());}
 function abrirIntro(){$('#intro').classList.add('on');document.body.classList.add('intro-open');ocultarPromo();}
 function cerrarIntro(){$('#intro').classList.remove('on');document.body.classList.remove('intro-open');}
 
@@ -493,9 +676,17 @@ document.addEventListener('click',e=>{
     return;
   }
   const g=e.target.closest('.gopt');
-  if(g){S.gate=g.dataset.g;try{localStorage.setItem(K_GATE,S.gate)}catch(err){}
-    S.modalidad.clear();cerrarGate();render();return;}
-  if(e.target.closest('#modo')){abrirGate();return;}
+  if(g){finGuia();
+    S.gate=g.dataset.g;try{localStorage.setItem(K_GATE,S.gate)}catch(err){}
+    /* estos tres filtros no existen en todos los gates (modalidad tiene
+       vocabulario propio en cada uno; curso y tipo de plazo desaparecen
+       en eventos): si no se limpian al cambiar de gate se quedan
+       filtrando en invisible y la lista sale vacía sin explicación. */
+    S.modalidad.clear();S.curso.clear();S.plazo.clear();
+    /* en eventos tampoco hay sector ni ciudad (ver pintarFiltros) */
+    if(S.gate==='eventos'){S.practica.clear();S.ciudad.clear();}
+    cerrarGate();render();return;}
+  if(e.target.closest('#modo')||e.target.closest('#abrirgate')){abrirGate();return;}
   const chip=e.target.closest('.chip[data-campo]');
   if(chip){const s=S[chip.dataset.campo],v=chip.dataset.v;s.has(v)?s.delete(v):s.add(v);render();return;}
   if(e.target.closest('#favbtn')){S.soloFav=!S.soloFav;render();return;}
@@ -546,10 +737,14 @@ document.addEventListener('change',e=>{
   if(t.dataset.campo){
     const s=S[t.dataset.campo],v=t.dataset.v;
     t.checked?s.add(v):s.delete(v);
-    /* estos filtros son de opción rápida: elegir una vez y cerrar.
-       "Más filtros" queda fuera a propósito, ahí sí conviene marcar
-       varias casillas seguidas sin que el panel se cierre solo. */
-    const AUTOCIERRE=['practica','modalidad','ciudad','seg'];
+    /* estos filtros son de opción rápida: elegir una vez y cerrar. Si no,
+       el panel se queda abierto tapando "Quitar filtros", que es justo lo
+       siguiente que se busca.
+       'empresa' entra aquí por el "Organizador" suelto de la vista de
+       eventos. En el tablón de ofertas la empresa vive dentro de "Más
+       filtros" (data-k="mas"), así que cerrar 'empresa' no le afecta: ahí
+       sigue abierto para poder marcar varias casillas seguidas. */
+    const AUTOCIERRE=['practica','modalidad','ciudad','seg','empresa'];
     render({estadoAbierto:t.dataset.campo==='estado',cerrar:AUTOCIERRE.includes(t.dataset.campo)?t.dataset.campo:null});
     return;
   }
@@ -591,9 +786,27 @@ $('#q').addEventListener('input',e=>{
    datos.json está desactualizado.
 ================================================================= */
 let CARGADO=false;
+
+/* ÚNICO punto que convierte la respuesta cruda en la lista de la app.
+   Lo usan aplicar() (lo que se pinta) y refrescar() (lo que se compara
+   con lo pintado): si los dos no filtran exactamente igual, la
+   comparación "¿han cambiado los datos?" sale distinta siempre y el
+   aviso "Hay datos más recientes" aparece en cada refresco aunque no
+   haya cambiado nada.
+   La exclusión de Auditoría & Legal es de ofertas de trabajo: un evento
+   no se descarta por el sector que tenga apuntado en la hoja. */
+function normalizarTodas(data){
+  /* defensivo a propósito: esto es lo único que hay entre una respuesta
+     rara de Apps Script (una fila null, un "ofertas" que no es lista) y
+     una pantalla en blanco. Una fila mala se tira, el resto se pinta. */
+  const filas=data&&Array.isArray(data.ofertas)?data.ofertas:[];
+  return filas.filter(o=>o&&typeof o==='object').map(norm)
+    .filter(o=>o.empresa&&(esEvento(o)||o.practica!=='Auditoría & Legal'));
+}
+
 function aplicar(data,origen){
   CARGADO=true;
-  TODAS=(data.ofertas||[]).map(norm).filter(o=>o.empresa&&o.practica!=='Auditoría & Legal');
+  TODAS=normalizarTodas(data);
   const f=data.actualizado?new Date(data.actualizado).toLocaleString('es-ES',{dateStyle:'medium',timeStyle:'short'}):'-';
   let aviso='';
   if(origen==='datos.json'&&data.actualizado){
@@ -635,7 +848,7 @@ async function refrescar(){
       try{
         const data=await pedirDatosEnDirecto();
         try{localStorage.setItem(K_DATOS,JSON.stringify(data))}catch(e){}
-        const nuevas=(data.ofertas||[]).map(norm).filter(o=>o.empresa);
+        const nuevas=normalizarTodas(data);
         if(JSON.stringify(nuevas)===JSON.stringify(TODAS))return; /* idénticos: nada, ni repintar */
         if(!TODAS.length||!hayFiltros()){
           aplicar(data,'en directo');
@@ -659,17 +872,24 @@ async function cargarInicial(){
   cargarPrefs();
   let primeraVez=false;
   try{primeraVez=!localStorage.getItem(K_INTRO)}catch(e){}
-  if(primeraVez)abrirIntro();
-  else if(!S.gate){S.gate='ambas';abrirGate();}
+  if(primeraVez){
+    /* quien entra por primera vez ya ve "Eventos" en el gate: no hay
+       novedad que contarle, y se da por vista para que no le salte
+       la guía más adelante. */
+    marcarNovedadVista();
+    abrirIntro();
+  }
+  else if(!S.gate){S.gate='ambas';empezarGuia();abrirGate();}
   else{
-    /* vuelta con el gate ya elegido: no hay evento de cierre de gate
-       que dispare la promo, así que si se había cerrado con la X antes
-       de recargar, se restaura colapsada en la píldora (sin desplegar
-       la tarjeta sola; si estaba abierta no se repite en cada recarga,
-       para no ser pesados). */
-    let cerrada=false;
-    try{cerrada=localStorage.getItem(K_PROMO)==='1'}catch(e){}
-    if(cerrada)abrirPromo(false);
+    /* vuelta con el gate ya elegido: no hay cierre de gate que dispare
+       la promo, así que se pone aquí. La píldora se enseña siempre; la
+       tarjeta, solo si es la primera vez (ver abrirPromo).
+       Las dos cosas van encadenadas, nunca a la vez: si toca la guía de
+       eventos, la tarjeta de la promo se queda para la próxima visita.
+       Soltarlas juntas llena la pantalla de avisos y la tarjeta tapa
+       justo la barra que la guía está señalando. */
+    empezarGuia();
+    abrirPromo(!GUIA&&!promoYaVista());
   }
 
   let listo=false;

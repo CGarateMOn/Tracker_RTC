@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 RTC · Ofertas is a static, single-page tracker of consulting internship/job listings, in Spanish. It is plain HTML/CSS/JS with **no build step, no package manager, and no dependencies** beyond two Google Fonts loaded via `<link>` in [index.html](index.html). The entire app is three files:
 
-- [index.html](index.html) — markup only: the onboarding "intro" screen, the "gate" (prácticas / contrato laboral / ambas) chooser, the filter bar, and the list container.
+- [index.html](index.html) — markup only: the onboarding "intro" screen, the "gate" (prácticas / contrato laboral / eventos / todo) chooser, the filter bar, and the list container.
 - [script.js](script.js) — all logic (state, filtering, rendering, persistence, data loading). Single file, no modules.
 - [style.css](style.css) — all styling. Mobile-first; desktop overrides live only inside `@media (min-width:1024px)` blocks so mobile styles are never touched by desktop tweaks.
 
@@ -20,7 +20,24 @@ python3 -m http.server 8000
 
 then visit `http://localhost:8000/`. Opening `index.html` directly via `file://` mostly works but the `fetch('datos.json')` call will fail under some browsers' CORS rules for local files, so prefer a static server.
 
-There is no linter, formatter, or test suite in this repo — do not invent npm scripts or assume a package.json exists.
+There is no linter, formatter, npm script or `package.json` in this repo — don't invent them. The app still has **no runtime dependencies**; the test suite below is the only thing that optionally wants an external tool, and it degrades gracefully without it.
+
+## Tests
+
+```bash
+node tests/todos.mjs        # toda la suite
+node tests/logica.mjs       # o un bloque suelto
+```
+
+No framework, no install step: plain `node` (ESM, no flags). Exits non-zero on failure, so it can hang off a hook or an Action directly.
+
+- [tests/entorno.mjs](tests/entorno.mjs) — the scaffolding. `script.js` has no modules and exports nothing, so `montar()` evaluates the whole file with `new Function` against a fake DOM and appends one line exposing its internals on `globalThis.__api`. **Production code is never modified for tests** — to test a new function, add its name to the `exporta` list there. `montar()` also fakes `localStorage` (optionally throwing, to simulate private mode) and `fetch` (route → response map). It exports `dia(n)` for dates relative to today; never build those with `toISOString()`, which shifts a day back in peninsular time.
+- [tests/datos.mjs](tests/datos.mjs) — fixtures in the sheet's **raw** shape (Spanish capitalized keys), plus the fixed `TABLON` and its `ESPERADO` counts. Tests must never read `datos.json`: the hourly Action rewrites it and every count would drift.
+- [tests/logica.mjs](tests/logica.mjs) — `norm()`, dates/`plazo`, brand colors, offer keys, `pasaGate()`, filtering and sorting.
+- [tests/render.mjs](tests/render.mjs) — `render()` across every data × gate combination, which controls each view shows, cards, empty states, counter wording, HTML escaping.
+- [tests/estado.mjs](tests/estado.mjs) — persistence (including corrupt and blocked `localStorage`), what a gate change clears, the three loading layers, the live refresh.
+- [tests/limites.mjs](tests/limites.mjs) — corrupt/partial rows, 1200-item volume, link schemes.
+- [tests/navegador.mjs](tests/navegador.mjs) — real Chromium via Playwright: first-run flow, filters, persistence across reloads, keyboard, eight viewport widths, private mode, offline. It starts its own static server on a free port and stubs `datos.json`, so it touches neither the network nor the real data file. Playwright is **not** a repo dependency — if it isn't installed the file prints `⊘` and exits 0 rather than failing (`npx playwright install chromium` to enable it).
 
 ## Data pipeline
 
@@ -36,6 +53,39 @@ In the browser, `script.js` loads data in three layers (see the comment block ab
 After the first paint, `refrescar()` polls the *live* Apps Script endpoint (`API_URL` at the top of [script.js](script.js), currently a hardcoded `/exec` URL — replace with `PEGA_AQUI...` semantics if wiring a fresh sheet) in the background, with retry/backoff (`REFRESCO_ESPERAS_MS`), in case `datos.json` is stale. If the user has active filters when new data arrives, it's held in `PENDIENTE` and surfaced as a "Hay datos más recientes" prompt rather than silently re-rendering under them.
 
 Raw sheet rows are normalized once via `norm()` ([script.js:45](script.js#L45)), which accepts either the Spanish capitalized sheet field names or already-normalized ones (`g('tipo','Tipo de Oferta')` pattern), and coerces `tipo`/`estado` into a small fixed vocabulary via regex.
+
+## Events
+
+Events (charlas, talleres, open days, networking) are **not a separate data source**: they are ordinary sheet rows whose `Tipo de Oferta` normalizes to `Evento` in `norm()`. Nothing in the pipeline or the GitHub Action changes to add one. The columns are reused, not extended:
+
+- `Deadline` is the date the event **takes place**, not an application cutoff.
+- `Modalidad` is the event **format**, normalized into `MOD_E` (`Presencial` / `Online` / `Híbrido`) from whatever the sheet writes (`On-line`, `En persona`, `in person`, `mixto`…). It's shown under the label "Formato".
+- `Curso` and `Tipo de plazo` are unused.
+
+The events view deliberately carries **three controls and nothing else** — Formato (only the `MOD_E` values actually present in the data), Organizador (empresa) and Guardados. There is no sort control, so `ordenar()` forces date order whenever `S.gate==='eventos'`; without that, a sort picked in the offers board would carry over and be unchangeable. `pintarFiltros()` handles the whole view with an early-return branch; the offers views are untouched.
+
+Consequences that new code must respect:
+
+- `S.gate` gained a fourth value, `eventos` (and `ambas` is now labelled "Todo" in the UI, but the stored key is unchanged so existing `K_GATE` values keep working). `pasaGate()` keeps events out of the two job gates entirely; `eventos` shows only events; `ambas` mixes both.
+- `plazo()` delegates to `plazoEvento()` for events — same levels and colors, event-tense wording ("Es hoy", "En 5 días", "Ya se celebró"). An event whose date has passed becomes `Cerrada` via the normal `estadoReal()` path, so it hides by default like a closed offer.
+- Event cards render **without** the `SEG` seguimiento `<select>` (a candidatura status is meaningless for an event); the ★ favourite still works and `claveOferta()` is unchanged.
+- `tieneDatos()` and the open-ended option lists (ciudad, empresa) in `pintarFiltros()` are scoped to `pasaGate()`, so a gate never offers filter options that belong to rows it hides.
+- Changing gate clears `modalidad`, `curso` and `plazo` (plus `practica` and `ciudad` when entering `eventos`), because those filters don't exist in every gate and would otherwise keep filtering invisibly.
+
+## One-time overlays (intro, promo, events guide)
+
+Three things compete for the user's attention on load, each gated by its own `localStorage` key, each shown **once per browser**:
+
+- `#intro` (`K_INTRO`) — first run only.
+- The WhatsApp promo card (`K_PROMO`) — the `¡Únete a RTC!` pill is always there, but the card auto-expands only the first time the user reaches the board. Clicking the pill still opens it manually forever. `abrirPromo(true)` is what sets the key, so it marks "already shown", never "dismissed".
+- The events guide (`K_NOVEDAD`) — for users who were already using the board before events existed: `#modo` pulses, and when the gate opens the pulse moves to the `Eventos` option. Picking any section ends it. New users get the key set immediately without ever seeing it, since they meet `Eventos` in the gate anyway.
+
+Rules that new overlays must follow:
+
+- **Never two at once.** `cargarInicial()` runs the guide first and only auto-expands the promo when the guide isn't running (`abrirPromo(!GUIA&&!promoYaVista())`); the deferred one comes back on the next visit. Firing both buries the board under notices and the promo card covers exactly the bar the guide is pointing at.
+- **Mark on show, not on dismiss**, so a reload mid-way doesn't replay it.
+- **If `localStorage` throws, treat it as already seen** (`novedadVista()` returns `true` on error) — otherwise every load in a private window replays it.
+- The guide's "Nuevo" badge is a CSS `::after`, not a DOM child, because `pintarControles()` rewrites `#modo`'s `textContent` on every render and would wipe any real child.
 
 ## Core state and rendering model
 
