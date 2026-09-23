@@ -16,6 +16,12 @@ const MOD_E=['Presencial','Online','Híbrido'];
 const PLAZOS=['Fecha fija','Rolling','Sin publicar'];
 const CURSOS=['Todos','Penúltimo año','Solo máster'];
 const ESTADOS=['Abierta','Próximamente','Cerrada'];
+/* con qué se arranca y a qué se vuelve al quitar filtros: lo abierto y
+   lo que está por abrir, nunca lo ya cerrado */
+const ESTADO_POR_DEFECTO=['Abierta','Próximamente'];
+/* los filtros de conjunto que limpia limpiarFiltros(). 'estado' va
+   aparte porque no se vacía, se devuelve a su valor por defecto. */
+const CAMPOS_FILTRO=['practica','modalidad','ciudad','empresa','plazo','curso','seg'];
 
 /* la hoja sigue mandando "Entrada directa": esto solo traduce cómo se
    ENSEÑA la modalidad (filtro y tarjetas), nunca el valor que se filtra,
@@ -50,7 +56,7 @@ let FAV=new Set();
    La ausencia de clave es "sin seguimiento" y no se persiste. */
 let SEG={};
 const S={gate:null,practica:new Set(),modalidad:new Set(),ciudad:new Set(),empresa:new Set(),
-         plazo:new Set(),curso:new Set(),estado:new Set(['Abierta','Próximamente']),seg:new Set(),
+         plazo:new Set(),curso:new Set(),estado:new Set(ESTADO_POR_DEFECTO),seg:new Set(),
          soloFav:false,orden:'plazo',q:''};
 
 /* ---------- normalización ---------- */
@@ -429,8 +435,23 @@ function pintarEstado(abierto){
     : `Mostrando: <b>${act.length?act.join(' · '):'nada'}</b> <button id="estadobtn">cambiar</button>`;
 }
 
+/* deja los filtros como recién llegado. Único sitio que define qué es
+   "sin filtros": lo usan el botón "Quitar filtros", el de la lista
+   vacía y el cambio de sección. Si se añade un filtro nuevo a S, va
+   aquí y los tres sitios quedan al día solos.
+   Las guardadas (FAV) y el seguimiento (SEG) NO se tocan: son datos del
+   usuario, no filtros; lo que se apaga es el interruptor de ver solo
+   guardadas. El orden tampoco, que no filtra nada. */
+function limpiarFiltros(){
+  CAMPOS_FILTRO.forEach(k=>S[k].clear());
+  S.estado=new Set(ESTADO_POR_DEFECTO);
+  S.soloFav=false;
+  S.q='';
+  $('#q').value='';
+}
+
 function hayFiltros(){
-  const estadoPorDefecto=S.estado.size===2&&S.estado.has('Abierta')&&S.estado.has('Próximamente');
+  const estadoPorDefecto=S.estado.size===ESTADO_POR_DEFECTO.length&&ESTADO_POR_DEFECTO.every(v=>S.estado.has(v));
   return S.practica.size+S.modalidad.size+S.ciudad.size+S.empresa.size+S.plazo.size+S.curso.size+S.seg.size
     +(S.q?1:0)+(S.soloFav?1:0)+(estadoPorDefecto?0:1) > 0;
 }
@@ -677,14 +698,17 @@ document.addEventListener('click',e=>{
   }
   const g=e.target.closest('.gopt');
   if(g){finGuia();
+    /* los filtros no se portan entre secciones: cada una empieza de
+       cero. Aparte de ser lo esperado (lo que buscas en prácticas no
+       tiene por qué valer en eventos), varios filtros ni siquiera
+       existen en todas —modalidad tiene vocabulario propio en cada
+       una, y curso, tipo de plazo, sector y ciudad desaparecen en
+       eventos—, así que arrastrarlos dejaba la lista filtrada en
+       invisible y vacía sin explicación.
+       Volver a elegir la sección en la que ya estás no limpia nada:
+       no te has movido de pantalla. */
+    if(S.gate!==g.dataset.g)limpiarFiltros();
     S.gate=g.dataset.g;try{localStorage.setItem(K_GATE,S.gate)}catch(err){}
-    /* estos tres filtros no existen en todos los gates (modalidad tiene
-       vocabulario propio en cada uno; curso y tipo de plazo desaparecen
-       en eventos): si no se limpian al cambiar de gate se quedan
-       filtrando en invisible y la lista sale vacía sin explicación. */
-    S.modalidad.clear();S.curso.clear();S.plazo.clear();
-    /* en eventos tampoco hay sector ni ciudad (ver pintarFiltros) */
-    if(S.gate==='eventos'){S.practica.clear();S.ciudad.clear();}
     cerrarGate();render();return;}
   if(e.target.closest('#modo')||e.target.closest('#abrirgate')){abrirGate();return;}
   const chip=e.target.closest('.chip[data-campo]');
@@ -699,8 +723,7 @@ document.addEventListener('click',e=>{
     return;
   }
   if(e.target.closest('#reset')||e.target.closest('#resetvacio')){
-    ['practica','modalidad','ciudad','empresa','plazo','curso','seg'].forEach(k=>S[k].clear());
-    S.estado=new Set(['Abierta','Próximamente']);S.soloFav=false;S.q='';$('#q').value='';render();return;
+    limpiarFiltros();render();return;
   }
   if(e.target.closest('#promoChip')){
     abrirPromo($('#promoCard').hidden);

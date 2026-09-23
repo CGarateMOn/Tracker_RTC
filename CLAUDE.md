@@ -70,7 +70,7 @@ Consequences that new code must respect:
 - `plazo()` delegates to `plazoEvento()` for events — same levels and colors, event-tense wording ("Es hoy", "En 5 días", "Ya se celebró"). An event whose date has passed becomes `Cerrada` via the normal `estadoReal()` path, so it hides by default like a closed offer.
 - Event cards render **without** the `SEG` seguimiento `<select>` (a candidatura status is meaningless for an event); the ★ favourite still works and `claveOferta()` is unchanged.
 - `tieneDatos()` and the open-ended option lists (ciudad, empresa) in `pintarFiltros()` are scoped to `pasaGate()`, so a gate never offers filter options that belong to rows it hides.
-- Changing gate clears `modalidad`, `curso` and `plazo` (plus `practica` and `ciudad` when entering `eventos`), because those filters don't exist in every gate and would otherwise keep filtering invisibly.
+- Changing gate clears **every** filter via `limpiarFiltros()` — filters don't travel between sections. Beyond being what users expect, several filters don't even exist in every gate (`modalidad` has its own vocabulary in each; `curso`, `plazo`, `practica` and `ciudad` vanish in `eventos`), so carrying them over left the list filtered invisibly and empty with no explanation. Re-picking the section you're already on clears nothing.
 
 ## One-time overlays (intro, promo, events guide)
 
@@ -88,6 +88,8 @@ Rules that new overlays must follow:
 - The guide's "Nuevo" badge is a CSS `::after`, not a DOM child, because `pintarControles()` rewrites `#modo`'s `textContent` on every render and would wipe any real child.
 
 ## Core state and rendering model
+
+`limpiarFiltros()` is the single definition of "no filters": it backs the `Quitar filtros` button, the empty-list button and the section change. A new filter added to `S` must be added there (or to `CAMPOS_FILTRO`) or those three silently stop clearing it. It deliberately leaves `FAV`, `SEG` and `S.orden` alone — those are user data and a sort, not filters; only the `soloFav` toggle is switched off. `ESTADO_POR_DEFECTO` is likewise the one place that says which states are shown on arrival.
 
 Everything revolves around a single mutable state object `S` ([script.js:40](script.js#L40)) holding active filter sets (`practica`, `modalidad`, `ciudad`, `empresa`, `plazo`, `curso`, `estado`, `seg`), plus `soloFav`, `orden`, and `q` (search text). There's no framework: `render()` ([script.js:392](script.js#L392)) re-derives everything from `S` + `TODAS` (the normalized listing array) and does a full `innerHTML` re-render of the filter panel and list on every change, preserving which `<details class="drop">` panels were open across the re-render.
 

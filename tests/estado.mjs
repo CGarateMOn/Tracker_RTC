@@ -49,25 +49,47 @@ const espera=ms=>new Promise(r=>setTimeout(r,ms));
   malos+=resumen('persistencia');
 }
 
-/* ============ 13. cambio de gate limpia los filtros invisibles ============ */
+/* ============ 13. cambiar de sección limpia TODOS los filtros ============ */
 {
   const {api,doc}=montar();
   api.aplicar(datos([fila({ID:'1'}),evento({ID:'e1'})]),'t');
   const clic=g=>doc._h.click({target:{closest:s=>s==='.gopt'?{dataset:{g}}:null}});
-  api.S.gate='practicas';
-  api.S.modalidad=new Set(['Summer']); api.S.curso=new Set(['Todos']); api.S.plazo=new Set(['Rolling']);
-  api.S.practica=new Set(['Estrategia']); api.S.ciudad=new Set(['Madrid']); api.S.empresa=new Set(['ACME']);
-  clic('eventos');
-  eq([api.S.modalidad.size,api.S.curso.size,api.S.plazo.size,api.S.practica.size,api.S.ciudad.size],[0,0,0,0,0],
-     'a eventos: se limpian modalidad, curso, plazo, sector y ciudad');
-  eq([...api.S.empresa],['ACME'],'a eventos: empresa se conserva (el filtro sigue existiendo)');
+  const ponerDeTodo=()=>{
+    api.S.practica=new Set(['Estrategia']); api.S.modalidad=new Set(['Summer']);
+    api.S.ciudad=new Set(['Madrid']);       api.S.empresa=new Set(['ACME']);
+    api.S.plazo=new Set(['Rolling']);       api.S.curso=new Set(['Todos']);
+    api.S.seg=new Set(['aplicada']);        api.S.estado=new Set(['Cerrada']);
+    api.S.soloFav=true;                     api.S.q='mckinsey';
+  };
+  const activos=()=>['practica','modalidad','ciudad','empresa','plazo','curso','seg']
+    .reduce((n,k)=>n+api.S[k].size,0)+(api.S.soloFav?1:0)+(api.S.q?1:0);
 
-  api.S.practica=new Set(['Estrategia']); api.S.ciudad=new Set(['Madrid']); api.S.curso=new Set(['Todos']);
-  clic('practicas');
-  eq([...api.S.practica],['Estrategia'],'entre gates de trabajo: sector se conserva');
-  eq([...api.S.ciudad],['Madrid'],'entre gates de trabajo: ciudad se conserva');
-  eq(api.S.curso.size,0,'entre gates de trabajo: curso se limpia (no existe en todos)');
-  malos+=resumen('cambio de gate');
+  /* de prácticas a eventos */
+  api.S.gate='practicas'; ponerDeTodo(); clic('eventos');
+  eq(activos(),0,'cambiar de sección: no queda ningún filtro puesto');
+  eq([...api.S.estado].sort(),['Abierta','Próximamente'],'cambiar de sección: el estado vuelve a su valor por defecto');
+  eq(api.S.q,'','cambiar de sección: se limpia la búsqueda');
+  eq(api.hayFiltros(),false,'cambiar de sección: hayFiltros() dice que no hay ninguno');
+
+  /* también entre las dos secciones de trabajo, que antes sí se portaban */
+  api.S.gate='practicas'; ponerDeTodo(); clic('full');
+  eq(activos(),0,'de prácticas a contrato laboral: tampoco se portan');
+  api.S.gate='ambas'; ponerDeTodo(); clic('practicas');
+  eq(activos(),0,'de Todo a prácticas: tampoco se portan');
+  api.S.gate='eventos'; ponerDeTodo(); clic('ambas');
+  eq(activos(),0,'de eventos a Todo: tampoco se portan');
+
+  /* lo que NO son filtros se respeta */
+  api.FAV.add('id:1'); api.SEG['id:1']='entrevista'; api.S.orden='empresa';
+  api.S.gate='practicas'; ponerDeTodo(); clic('eventos');
+  eq([...api.FAV],['id:1'],'cambiar de sección: las guardadas no se tocan');
+  eq(api.SEG,{'id:1':'entrevista'},'cambiar de sección: el seguimiento no se toca');
+  eq(api.S.orden,'empresa','cambiar de sección: el orden no es un filtro, se respeta');
+
+  /* volver a elegir la MISMA sección no limpia: no te has movido */
+  api.S.gate='eventos'; ponerDeTodo(); clic('eventos');
+  cierto(activos()>0,'reelegir la misma sección no limpia nada');
+  malos+=resumen('cambio de sección');
 }
 
 /* ============ 13b. la promo del grupo: la tarjeta, una sola vez por navegador ============ */

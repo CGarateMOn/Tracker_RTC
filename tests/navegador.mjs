@@ -304,6 +304,42 @@ const entrar=async(p,gate)=>{
   await c.close();
 }
 
+/* ============ 6b. los filtros no se portan entre secciones ============ */
+{
+  const {c,p}=await nueva();
+  await entrar(p,'practicas');
+
+  /* dejar varios filtros puestos y una búsqueda */
+  await p.click('#row1 details[data-k="ciudad"] summary'); await p.waitForTimeout(150);
+  await p.click('#row1 details[data-k="ciudad"] .panel label.opt:has-text("Madrid")'); await p.waitForTimeout(300);
+  await p.fill('#q','deloitte'); await p.waitForTimeout(350);
+  cierto(await p.locator('#reset').isVisible(),'secciones: hay filtros puestos en prácticas');
+  const antes=await p.textContent('#count');
+
+  /* cambiar de sección los borra todos */
+  await p.click('#modo'); await p.waitForTimeout(200);
+  await p.click('.gopt[data-g="ambas"]'); await p.waitForTimeout(450);
+  eq(await p.locator('#reset').isVisible(),false,'secciones: al cambiar no queda ningún filtro');
+  eq(await p.inputValue('#q'),'','secciones: la búsqueda se limpia también en la caja');
+  /* solo casillas: el radio del orden sigue marcado a propósito, el orden no es un filtro */
+  eq(await p.locator('.bar input[type=checkbox]:checked').count(),0,'secciones: ninguna casilla de filtro marcada');
+  eq(await p.textContent('#count'),ESPERADO.todo+' resultados','secciones: se ve la sección entera');
+
+  /* y tampoco vuelven al regresar a la sección anterior */
+  await p.click('#modo'); await p.waitForTimeout(200);
+  await p.click('.gopt[data-g="practicas"]'); await p.waitForTimeout(450);
+  eq(await p.locator('#reset').isVisible(),false,'secciones: al volver tampoco reaparecen');
+  eq(await p.textContent('#count'),ESPERADO.practicas+' ofertas','secciones: prácticas sin filtrar');
+
+  /* lo guardado sí sobrevive: no es un filtro */
+  await p.locator('.card').first().locator('.fav').click(); await p.waitForTimeout(250);
+  await p.click('#modo'); await p.waitForTimeout(200);
+  await p.click('.gopt[data-g="ambas"]'); await p.waitForTimeout(450);
+  eq(await p.locator('.fav[aria-pressed="true"]').count(),1,'secciones: lo guardado no se pierde al cambiar');
+  eq(await p.textContent('#favbtn'),'★ Guardadas1','secciones: el contador de guardadas se mantiene');
+  await c.close();
+}
+
 /* ============ 7. búsqueda ============ */
 {
   const {c,p}=await nueva();
