@@ -149,6 +149,11 @@ const MARCAS = [
   {matriz:'NTT DATA', color:'#0075C2', ramas:['ntt','ntt data','everis']},
   {matriz:'Indra',    color:'#6E2585', ramas:['indra','minsait']},
 
+  /* navy del logo oficial (WPP_ES_TheCocktail_logo_NAVY.svg, fill único
+     de todos sus trazos). Sin esta entrada caía en el verde de reserva
+     derivado del nombre, que se confundía con el de BCG. */
+  {matriz:'The Cocktail', color:'#000050', ramas:['the cocktail','cocktail']},
+
   /* --- reestructuración y otras --- */
   {matriz:'Alvarez & Marsal', color:'#005587', ramas:['alvarez','alvarez & marsal']},
   {matriz:'AlixPartners',     color:'#E4002B', ramas:['alixpartners','alix']},

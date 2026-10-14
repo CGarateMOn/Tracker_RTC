@@ -107,6 +107,8 @@ const HOY=d(0);
   eq(c('EY-Parthenon'),'#FFE600','EY-Parthenon hereda EY');
   eq(c('Strategy&'),'#D04A02','Strategy& hereda PwC');
   eq(c('Road to Consulting'),'#004E54','RTC');
+  eq(c('The Cocktail'),'#000050','The Cocktail (navy de su logo oficial)');
+  cierto(c('The Cocktail')!==c('Boston Consulting Group'),'The Cocktail ya no se confunde con BCG');
   eq(c('RTC'),'#004E54','RTC (siglas)');
   cierto(c('Kearney')!==c('EY'),'"ey" NO coincide con Kearn-ey');
   cierto(c('McKinsey & Company')!==c('EY'),'"ey" NO coincide con McKins-ey');
