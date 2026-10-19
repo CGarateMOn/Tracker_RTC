@@ -503,15 +503,10 @@ function pintarLista(){
     :['oferta','ofertas'];
   $('#count').textContent=items.length===1?'1 '+nombre[0]:items.length+' '+nombre[1];
 
-  const ocultas=!S.estado.has('Cerrada')?TODAS.filter(o=>pasa(o,'estado')&&estadoReal(o)==='Cerrada').length:0;
-  const pasadas=ocultas===1
-    ?(vistaEv?'Hay 1 evento parecido que ya se celebró.':'Hay 1 oferta similar que ya está cerrada.')
-    :'Hay '+ocultas+(vistaEv?' eventos parecidos que ya se celebraron.':' ofertas similares que ya están cerradas.');
   if(PENDIENTE){
     $('#hint').innerHTML=`<div class="hint">Hay datos más recientes. <button id="aplicarnuevos">Aplicarlos</button></div>`;
   }else{
-    $('#hint').innerHTML=(ocultas&&items.length)
-      ?`<div class="hint">${pasadas} <button id="vercerradas">Puedes ver${vistaEv?(ocultas===1?'lo':'los'):(ocultas===1?'la':'las')} si quieres</button></div>`:'';
+    $('#hint').innerHTML='';
   }
 
   if(!items.length){
@@ -526,7 +521,6 @@ function pintarLista(){
     }
     $('#list').innerHTML=`<li class="empty"><b>${vistaEv?'No hay ningún evento con esas características':'No hay ninguna posición con esas características'}</b>
       Prueba a quitar algún filtro o a ampliar la búsqueda.
-      ${ocultas?`<br><br>${pasadas}`:''}
       <br><button id="resetvacio">Quitar todos los filtros</button></li>`;
     return;
   }
@@ -722,7 +716,6 @@ document.addEventListener('click',e=>{
   const f=e.target.closest('.fav');
   if(f){const k=f.dataset.key;FAV.has(k)?FAV.delete(k):FAV.add(k);if(!FAV.size)S.soloFav=false;render();return;}
   if(e.target.closest('#estadobtn')){pintarEstado(true);return;}
-  if(e.target.closest('#vercerradas')){S.estado.add('Cerrada');render();return;}
   if(e.target.closest('#aplicarnuevos')){
     if(PENDIENTE){const d=PENDIENTE;PENDIENTE=null;aplicar(d,'en directo');}
     return;

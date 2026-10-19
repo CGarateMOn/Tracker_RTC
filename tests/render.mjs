@@ -110,10 +110,16 @@ let malos=0;
   api.aplicar(datos([evento({ID:'e1',Deadline:d(-9)})]),'t'); api.render();
   const h=pantalla['#list'].innerHTML;
   cierto(/No hay ningún evento con esas características/.test(h),'eventos todos pasados: mensaje de filtros');
-  cierto(/ya se celebró/.test(h),'eventos pasados: avisa de los ya celebrados, en masculino');
+  cierto(!/ya se celebr/.test(h),'eventos pasados: no sugiere verlos');
 
   api.aplicar(datos([fila({ID:'1',Estado:'Cerrada'})]),'t'); api.S.gate='ambas'; api.render();
-  cierto(/ya está cerrada/.test(pantalla['#list'].innerHTML),'ofertas cerradas: texto en femenino');
+  cierto(!/ya está cerrada/.test(pantalla['#list'].innerHTML),'ofertas cerradas: no las sugiere');
+  eq(pantalla['#hint'].innerHTML,'','sin sugerencia de cerradas');
+  api.S.estado.add('Cerrada'); api.render();
+  eq(pantalla['#count'].textContent,'1 oferta','el filtro de estado permite mostrar cerradas');
+  api.aplicar(datos([fila({ID:'1',Estado:'Cerrada'}),fila({ID:'2'})]),'t');
+  api.S.estado.delete('Cerrada'); api.render();
+  eq(pantalla['#hint'].innerHTML,'','con resultados tampoco sugiere cerradas');
   malos+=resumen('estados vacíos y avisos');
 }
 
