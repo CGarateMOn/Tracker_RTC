@@ -56,7 +56,14 @@ const HOY=d(0);
   eq(api.dias({deadline:d(1)}),1,'mañana → 1');
   eq(api.dias({deadline:d(-1)}),-1,'ayer → -1');
   /* ISO con Z no debe desplazar el día (bug clásico de UTC) */
-  eq(api.dias({deadline:HOY+'T22:00:00.000Z'}),1,'ISO 22:00Z → día siguiente en hora local (CEST, documentado)');
+  /* Un ISO con Z se interpreta en hora local, no se trunca por la fecha
+     que trae escrita. Las 22:00Z caen en el día siguiente en horario de
+     verano (UTC+2) y en el mismo día en invierno (UTC+1), así que la
+     expectativa se DERIVA del desfase real: fijarla a 1 hacía que la
+     prueba se rompiera sola el domingo del cambio de hora. */
+  const desfaseH=-new Date(HOY+'T22:00:00.000Z').getTimezoneOffset()/60;
+  eq(api.dias({deadline:HOY+'T22:00:00.000Z'}),(22+desfaseH)>=24?1:0,
+     `ISO 22:00Z se interpreta en hora local (ahora UTC+${desfaseH})`);
   eq(api.dias({deadline:HOY+'T08:00:00.000Z'}),0,'ISO 08:00Z → mismo día');
 
   eq(api.estadoReal({estado:'Abierta',deadline:d(-1)}),'Cerrada','abierta con deadline pasado → Cerrada');
